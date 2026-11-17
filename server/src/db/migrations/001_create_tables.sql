@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS products (
   harga_jual INTEGER NOT NULL CHECK (harga_jual >= 0),
   harga_pokok INTEGER NOT NULL CHECK (harga_pokok >= 0),
   stok INTEGER NOT NULL DEFAULT 0 CHECK (stok >= 0),
-  stok_minimum INTEGER NOT NULL DEFAULT 5,
+  stok_minimum INTEGER NOT NULL DEFAULT 5 CHECK (stok_minimum >= 0),
   unit VARCHAR(30) NOT NULL DEFAULT 'pcs',
   status VARCHAR(10) NOT NULL DEFAULT 'aktif' CHECK (status IN ('aktif', 'nonaktif')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -84,8 +84,23 @@ CREATE TABLE IF NOT EXISTS vouchers (
   aktif BOOLEAN NOT NULL DEFAULT TRUE
 );
 
+-- Stock adjustments audit log
+CREATE TABLE IF NOT EXISTS stock_adjustments (
+  id SERIAL PRIMARY KEY,
+  product_id INTEGER NOT NULL REFERENCES products(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  mode VARCHAR(10) NOT NULL CHECK (mode IN ('set', 'selisih')),
+  nilai_input INTEGER NOT NULL,
+  stok_sebelum INTEGER NOT NULL CHECK (stok_sebelum >= 0),
+  stok_sesudah INTEGER NOT NULL CHECK (stok_sesudah >= 0),
+  selisih INTEGER NOT NULL,
+  catatan TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_orders_user_created ON orders(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_order_details_order_id ON order_details(order_id);
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_stock_adjustments_product_id ON stock_adjustments(product_id);

@@ -69,13 +69,25 @@ export function useResetPassword() {
   });
 }
 
+function cleanParams(params) {
+  if (!params) return undefined;
+  const cleaned = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') {
+      cleaned[k] = v;
+    }
+  }
+  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+}
+
 // ============================================================
 // CATEGORIES
 // ============================================================
 export function useCategories(params) {
+  const cleaned = cleanParams(params);
   return useQuery({
-    queryKey: ['categories', params],
-    queryFn: () => api.get('/categories', params),
+    queryKey: ['categories', cleaned],
+    queryFn: () => api.get('/categories', cleaned),
   });
 }
 
@@ -91,6 +103,17 @@ export function useUpdateCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...data }) => api.patch(`/categories/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+}
+
+export function useDeleteCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.delete(`/categories/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
   });
 }
@@ -99,9 +122,10 @@ export function useUpdateCategory() {
 // PRODUCTS
 // ============================================================
 export function useProducts(params) {
+  const cleaned = cleanParams(params);
   return useQuery({
-    queryKey: ['products', params],
-    queryFn: () => api.get('/products', params),
+    queryKey: ['products', cleaned],
+    queryFn: () => api.get('/products', cleaned),
   });
 }
 
@@ -117,7 +141,10 @@ export function useCreateProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data) => api.post('/products', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['categories'] });
+    },
   });
 }
 
@@ -125,7 +152,21 @@ export function useUpdateProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...data }) => api.patch(`/products/${id}`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['categories'] });
+    },
+  });
+}
+
+export function useDeleteProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.delete(`/products/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['categories'] });
+    },
   });
 }
 
@@ -133,7 +174,18 @@ export function useUpdateStok() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...data }) => api.patch(`/products/${id}/stok`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['stock-history'] });
+    },
+  });
+}
+
+export function useProductStockHistory(productId) {
+  return useQuery({
+    queryKey: ['stock-history', productId],
+    queryFn: () => api.get(`/products/${productId}/stok-history`),
+    enabled: !!productId,
   });
 }
 

@@ -11,7 +11,10 @@ export function errorHandler(err, req, res, _next) {
   return res.status(status).json({
     ok: false,
     data: null,
-    error: { message },
+    error: {
+      message,
+      ...(err.code ? { code: err.code } : {}),
+    },
   });
 }
 

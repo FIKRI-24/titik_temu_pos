@@ -4,11 +4,12 @@
 const BASE_URL = '/api';
 
 class ApiError extends Error {
-  constructor(message, status, details = null) {
+  constructor(message, status, details = null, code = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.details = details;
+    this.code = code;
   }
 }
 
@@ -45,7 +46,8 @@ async function request(path, options = {}) {
     throw new ApiError(
       data.error?.message || `Terjadi kesalahan (${response.status})`,
       response.status,
-      data.error?.details
+      data.error?.details,
+      data.error?.code
     );
   }
 

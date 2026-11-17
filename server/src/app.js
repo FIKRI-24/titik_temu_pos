@@ -9,6 +9,8 @@ import { errorHandler, notFound } from './middleware/errorHandler.js';
 // Routes for active modules
 import authRoutes from './modules/auth/auth.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
+import categoriesRoutes from './modules/categories/categories.routes.js';
+import productsRoutes from './modules/products/products.routes.js';
 
 const app = express();
 
@@ -53,6 +55,8 @@ app.get('/api/health', (_req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/products', productsRoutes);
 
 // 404 handler
 app.use(notFound);

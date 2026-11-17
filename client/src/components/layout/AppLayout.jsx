@@ -31,6 +31,13 @@ export function AppLayout() {
             <span>Dashboard</span>
           </NavLink>
 
+          <NavLink
+            to="/menu"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <span>{isAdmin ? 'Kelola menu' : 'Daftar menu'}</span>
+          </NavLink>
+
           {isAdmin && (
             <>
               <div className="nav-divider" />

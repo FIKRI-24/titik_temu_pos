@@ -3,7 +3,7 @@
 -- Password untuk kasir1: Kasir#2026
 -- Hash bcrypt dibuat dengan cost 10
 
-TRUNCATE order_details, orders, order_counters, products, vouchers, categories, users RESTART IDENTITY CASCADE;
+TRUNCATE stock_adjustments, order_details, orders, order_counters, products, vouchers, categories, users RESTART IDENTITY CASCADE;
 
 -- ============================================================
 -- USERS

@@ -7,6 +7,7 @@ import { AppLayout } from './components/layout/AppLayout.jsx';
 import LoginPage from './features/auth/LoginPage.jsx';
 import DashboardPage from './features/dashboard/DashboardPage.jsx';
 import UsersPage from './features/users/UsersPage.jsx';
+import MenuPage from './features/menu/MenuPage.jsx';
 
 function ModulePendingNotice({ title, phase }) {
   return (
@@ -34,6 +35,7 @@ export default function App() {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="menu" element={<MenuPage />} />
           <Route
             path="transaksi"
             element={<ModulePendingNotice title="Transaksi kasir" phase="Fase 3" />}
