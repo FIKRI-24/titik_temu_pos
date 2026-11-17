@@ -1,0 +1,91 @@
+-- Migration 001: Create all tables for Titik Temu Kopi POS System
+-- Run order: this file first, then seed.sql
+
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  nama_lengkap VARCHAR(100) NOT NULL,
+  role VARCHAR(10) NOT NULL CHECK (role IN ('admin', 'kasir')),
+  status VARCHAR(10) NOT NULL DEFAULT 'aktif' CHECK (status IN ('aktif', 'nonaktif')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Categories table
+CREATE TABLE IF NOT EXISTS categories (
+  id SERIAL PRIMARY KEY,
+  nama_kategori VARCHAR(100) NOT NULL,
+  slug VARCHAR(100) UNIQUE NOT NULL,
+  status VARCHAR(10) NOT NULL DEFAULT 'aktif' CHECK (status IN ('aktif', 'nonaktif'))
+);
+
+-- Products table
+CREATE TABLE IF NOT EXISTS products (
+  id SERIAL PRIMARY KEY,
+  category_id INTEGER NOT NULL REFERENCES categories(id),
+  kode_produk VARCHAR(50) UNIQUE NOT NULL,
+  nama_produk VARCHAR(150) NOT NULL,
+  harga_jual INTEGER NOT NULL CHECK (harga_jual >= 0),
+  harga_pokok INTEGER NOT NULL CHECK (harga_pokok >= 0),
+  stok INTEGER NOT NULL DEFAULT 0 CHECK (stok >= 0),
+  stok_minimum INTEGER NOT NULL DEFAULT 5,
+  unit VARCHAR(30) NOT NULL DEFAULT 'pcs',
+  status VARCHAR(10) NOT NULL DEFAULT 'aktif' CHECK (status IN ('aktif', 'nonaktif')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Orders table
+CREATE TABLE IF NOT EXISTS orders (
+  id SERIAL PRIMARY KEY,
+  invoice_number VARCHAR(30) UNIQUE NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  tipe_pesanan VARCHAR(10) NOT NULL CHECK (tipe_pesanan IN ('dine_in', 'takeaway')),
+  nomor_meja INTEGER CHECK (
+    (tipe_pesanan = 'dine_in' AND nomor_meja IS NOT NULL AND nomor_meja BETWEEN 1 AND 20)
+    OR (tipe_pesanan = 'takeaway' AND nomor_meja IS NULL)
+  ),
+  nama_pemesan VARCHAR(100),
+  total_subtotal INTEGER NOT NULL CHECK (total_subtotal >= 0),
+  diskon_nominal INTEGER NOT NULL DEFAULT 0 CHECK (diskon_nominal >= 0),
+  voucher_kode VARCHAR(50),
+  pajak_nominal INTEGER NOT NULL DEFAULT 0 CHECK (pajak_nominal >= 0),
+  grand_total INTEGER NOT NULL CHECK (grand_total >= 0),
+  metode_bayar VARCHAR(10) NOT NULL CHECK (metode_bayar IN ('tunai', 'qris', 'transfer', 'debit')),
+  uang_dibayar INTEGER NOT NULL CHECK (uang_dibayar >= grand_total),
+  uang_kembali INTEGER NOT NULL DEFAULT 0 CHECK (uang_kembali >= 0),
+  status VARCHAR(15) NOT NULL DEFAULT 'diproses' CHECK (status IN ('diproses', 'selesai', 'dibatalkan')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Order details table
+CREATE TABLE IF NOT EXISTS order_details (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders(id),
+  product_id INTEGER NOT NULL REFERENCES products(id),
+  harga_satuan INTEGER NOT NULL CHECK (harga_satuan >= 0),
+  harga_pokok_satuan INTEGER NOT NULL CHECK (harga_pokok_satuan >= 0),
+  kuantiti INTEGER NOT NULL CHECK (kuantiti > 0),
+  subtotal_baris INTEGER NOT NULL CHECK (subtotal_baris >= 0),
+  catatan_khusus TEXT
+);
+
+-- Order counters for invoice numbering (per-day sequential)
+CREATE TABLE IF NOT EXISTS order_counters (
+  tanggal DATE PRIMARY KEY,
+  nomor_terakhir INTEGER NOT NULL DEFAULT 0
+);
+
+-- Vouchers table
+CREATE TABLE IF NOT EXISTS vouchers (
+  kode VARCHAR(50) PRIMARY KEY,
+  tipe VARCHAR(10) NOT NULL CHECK (tipe IN ('persen', 'nominal')),
+  nilai INTEGER NOT NULL CHECK (nilai > 0),
+  aktif BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_user_created ON orders(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_order_details_order_id ON order_details(order_id);
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
