@@ -32,6 +32,20 @@ export function AppLayout() {
           </NavLink>
 
           <NavLink
+            to="/transaksi"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <span>Transaksi baru</span>
+          </NavLink>
+
+          <NavLink
+            to="/riwayat"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <span>Riwayat pesanan</span>
+          </NavLink>
+
+          <NavLink
             to="/menu"
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >

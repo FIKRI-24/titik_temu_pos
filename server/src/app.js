@@ -11,6 +11,8 @@ import authRoutes from './modules/auth/auth.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
 import categoriesRoutes from './modules/categories/categories.routes.js';
 import productsRoutes from './modules/products/products.routes.js';
+import vouchersRoutes from './modules/vouchers/vouchers.routes.js';
+import ordersRoutes from './modules/orders/orders.routes.js';
 
 const app = express();
 
@@ -57,6 +59,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/products', productsRoutes);
+app.use('/api/vouchers', vouchersRoutes);
+app.use('/api/orders', ordersRoutes);
 
 // 404 handler
 app.use(notFound);

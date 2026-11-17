@@ -1,0 +1,93 @@
+/* src/features/pos/orders.css */
+.orders-page {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.link-btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.orders-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--text-sm);
+}
+
+.orders-table th {
+  padding: 12px 14px;
+  background: var(--color-gray-50);
+  border-bottom: 1px solid var(--color-gray-200);
+  color: var(--color-gray-700);
+  font-weight: 600;
+}
+
+.orders-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-gray-100);
+  vertical-align: middle;
+}
+
+.orders-table tr:last-child td {
+  border-bottom: none;
+}
+
+.pemesan-sub {
+  font-size: 11px;
+  color: var(--color-gray-600);
+  margin-top: 2px;
+}
+
+.method-cell {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-gray-700);
+}
+
+.order-status-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.order-status-pill.status-diproses {
+  background: var(--color-kunyit-light);
+  color: #7D5104;
+}
+
+.order-status-pill.status-selesai {
+  background: var(--color-hijau-pandan-light);
+  color: var(--color-hijau-pandan);
+}
+
+.order-status-pill.status-dibatalkan {
+  background: var(--color-delima-light);
+  color: var(--color-delima);
+}
+
+.pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  font-size: var(--text-xs);
+  color: var(--color-gray-600);
+}

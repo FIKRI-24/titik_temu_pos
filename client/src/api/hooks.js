@@ -202,9 +202,10 @@ export function useValidateVoucher() {
 // ORDERS
 // ============================================================
 export function useOrders(params) {
+  const cleaned = cleanParams(params);
   return useQuery({
-    queryKey: ['orders', params],
-    queryFn: () => api.get('/orders', params),
+    queryKey: ['orders', cleaned],
+    queryFn: () => api.get('/orders', cleaned),
   });
 }
 
