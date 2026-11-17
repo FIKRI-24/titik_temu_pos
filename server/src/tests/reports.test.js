@@ -21,6 +21,9 @@ import {
   generateReportCsv,
   generateReportPdf,
   formatCsvCell,
+  sanitizeExportFilename,
+  MAX_CSV_ROWS,
+  MAX_PDF_ROWS,
 } from '../modules/reports/reports.service.js';
 import { getSummary as getDashboardSummary } from '../modules/dashboard/dashboard.service.js';
 
@@ -201,6 +204,14 @@ describe('Fase 5: Laporan, Rekonsiliasi, Ekspor CSV/PDF, Keamanan, & Performa', 
         'page=0',
       ];
 
+      // Verify SQL/table/stack leak detector catches actual leaks (never silently permissive)
+      const sqlLeakPattern =
+        /(syntax error|relation\s+"|column\s+"|invalid input syntax|SQLSTATE|pg_|postgresql|\bSELECT\b|\bFROM\b|\bDROP\s+TABLE\b|\bUNION\s+SELECT\b|\b(?:orders|order_details|order_counters|products|categories|users|vouchers|stock_adjustments)\b|\bat\s+\S+\s*\(.*:\d+:\d+\)|node_modules[\\/]|Error:\s)/;
+      expect('ERROR: syntax error at or near "DROP"').toMatch(sqlLeakPattern);
+      expect('relation "order_details" does not exist').toMatch(sqlLeakPattern);
+      expect('at Pool.query (node_modules/pg/lib/pool.js:42:11)').toMatch(sqlLeakPattern);
+      expect('SELECT * FROM orders').toMatch(sqlLeakPattern);
+
       for (const qs of maliciousQueries) {
         const res = await fetch(`${baseUrl}/api/reports/orders?${qs}`, {
           headers: { Cookie: adminCookie },
@@ -209,8 +220,17 @@ describe('Fase 5: Laporan, Rekonsiliasi, Ekspor CSV/PDF, Keamanan, & Performa', 
         const body = await res.json();
         expect(body.ok).toBe(false);
         const text = JSON.stringify(body);
-        expect(text).not.toMatch(/syntax error|SELECT\b.*\bFROM|pg_|postgresql|stack/i);
+        expect(text).not.toMatch(sqlLeakPattern);
       }
+    });
+
+    it('menyanitasi nama berkas Content-Disposition dari karakter injeksi header', () => {
+      expect(sanitizeExportFilename('laporan-2026-11-11_2026-11-17.csv')).toBe(
+        'laporan-2026-11-11_2026-11-17.csv'
+      );
+      const safe = sanitizeExportFilename('../bad;\r\n"name".pdf');
+      expect(safe).not.toMatch(/[\r\n;"/\\]/);
+      expect(safe).toMatch(/^[A-Za-z0-9._-]+$/);
     });
   });
 
@@ -359,9 +379,10 @@ describe('Fase 5: Laporan, Rekonsiliasi, Ekspor CSV/PDF, Keamanan, & Performa', 
         expect(summaryRes.summary.laba_kotor).toBe(expLabaKotor);
         expect(summaryRes.summary.rata_rata_transaksi).toBe(expAvg);
 
-        // CSV equals exact unpaginated table count and column sums
+        // CSV equals exact unpaginated table count and column sums (skip line 0 `sep=,` & line 1 header)
         const csvRows = parseCsv(csvBuf);
-        const dataCsvRows = csvRows.slice(1);
+        expect(csvRows[0]).toEqual(['sep=', '']);
+        const dataCsvRows = csvRows.slice(2);
         expect(dataCsvRows).toHaveLength(ordersPage1.total);
 
         const nonCancelledCsvRows = dataCsvRows.filter((r) => r[12] !== 'Dibatalkan');
@@ -450,11 +471,12 @@ describe('Fase 5: Laporan, Rekonsiliasi, Ekspor CSV/PDF, Keamanan, & Performa', 
       expect(csvBuf[2]).toBe(0xbf);
 
       const parsed = parseCsv(csvBuf);
-      expect(parsed).toHaveLength(2);
-      expect(parsed[1][5]).toBe("'=1+1, \"Test\"");
-      expect(parsed[1][8]).toBe('28000');
-      expect(parsed[1][11]).toBe('30800');
-      expect(parsed[1][1]).toMatch(/^2026-10-15 11:15:00 WIB$/);
+      expect(parsed).toHaveLength(3);
+      expect(parsed[0]).toEqual(['sep=', '']);
+      expect(parsed[2][5]).toBe("'=1+1, \"Test\"");
+      expect(parsed[2][8]).toBe('28000');
+      expect(parsed[2][11]).toBe('30800');
+      expect(parsed[2][1]).toMatch(/^2026-10-15 11:15:00 WIB$/);
     });
 
     it('menghasilkan PDF A4 landscape multi-halaman dengan header berulang, wrap teks panjang, dan nomor halaman', async () => {
@@ -561,13 +583,60 @@ describe('Fase 5: Laporan, Rekonsiliasi, Ekspor CSV/PDF, Keamanan, & Performa', 
       const csvBuf = await generateReportCsv(benchFilter);
       const tCsvMs = performance.now() - t2;
 
+      const t3 = performance.now();
+      const pdfBuf = await generateReportPdf(benchFilter);
+      const tPdfMs = performance.now() - t3;
+
       expect(pageRes.total).toBe(5000);
       expect(summaryRes.summary.jumlah_pesanan).toBe(4800); // 200 cancelled excluded (5000 / 25)
-      expect(parseCsv(csvBuf).slice(1)).toHaveLength(5000);
+      expect(parseCsv(csvBuf).slice(2)).toHaveLength(5000);
+      expect(pdfBuf.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+      const pdfPages5k = pdfBuf.toString('latin1').match(/\/Type\s*\/Page\b/g) || [];
+      expect(pdfPages5k.length).toBeGreaterThanOrEqual(150);
 
       expect(tSummaryMs).toBeLessThan(1000);
       expect(tOrdersMs).toBeLessThan(1000);
       expect(tCsvMs).toBeLessThan(3000);
+      expect(tPdfMs).toBeLessThan(20000);
+
+      // Exceed PDF max (5.001 rows) -> HTTP 422 without truncation
+      await pool.query(
+        `INSERT INTO orders (invoice_number, user_id, tipe_pesanan, nomor_meja, nama_pemesan, total_subtotal, diskon_nominal, voucher_kode, pajak_nominal, grand_total, metode_bayar, uang_dibayar, uang_kembali, status, created_at)
+         VALUES ('INV-BENCH-2026-05001', 2, 'takeaway', NULL, 'Overflow PDF', 50000, 0, NULL, 5000, 55000, 'tunai', 55000, 0, 'selesai', '2026-08-15 10:00:00+07:00'::timestamptz)`
+      );
+      const overPdfRes = await fetch(
+        `${baseUrl}/api/reports/export.pdf?dateFrom=2026-08-01&dateTo=2026-09-01`,
+        { headers: { Cookie: adminCookie } }
+      );
+      expect(overPdfRes.status).toBe(422);
+      const overPdfBody = await overPdfRes.json();
+      expect(overPdfBody.error.code).toBe('EXPORT_LIMIT_EXCEEDED');
+      expect(overPdfBody.error.message).toBe(
+        'Hasil terlalu banyak, persempit rentang tanggal atau filter.'
+      );
+      expect(MAX_PDF_ROWS).toBe(5000);
+
+      // Exceed CSV max (50.001 rows) -> HTTP 422 without truncation
+      await pool.query(`
+        INSERT INTO orders (invoice_number, user_id, tipe_pesanan, nomor_meja, nama_pemesan, total_subtotal, diskon_nominal, voucher_kode, pajak_nominal, grand_total, metode_bayar, uang_dibayar, uang_kembali, status, created_at)
+        SELECT
+          'INV-BENCH-2026-' || LPAD(gs::text, 5, '0'),
+          2, 'takeaway', NULL, 'Overflow CSV',
+          10000, 0, NULL, 1000, 11000, 'tunai', 11000, 0, 'selesai',
+          TIMESTAMPTZ '2026-08-20 08:00:00+07'
+        FROM generate_series(5002, 50001) AS gs
+      `);
+      const overCsvRes = await fetch(
+        `${baseUrl}/api/reports/export.csv?dateFrom=2026-08-01&dateTo=2026-09-01`,
+        { headers: { Cookie: adminCookie } }
+      );
+      expect(overCsvRes.status).toBe(422);
+      const overCsvBody = await overCsvRes.json();
+      expect(overCsvBody.error.code).toBe('EXPORT_LIMIT_EXCEEDED');
+      expect(overCsvBody.error.message).toBe(
+        'Hasil terlalu banyak, persempit rentang tanggal atau filter.'
+      );
+      expect(MAX_CSV_ROWS).toBe(50000);
 
       const explainRes = await pool.query(`
         EXPLAIN (ANALYZE, BUFFERS)
@@ -581,6 +650,6 @@ describe('Fase 5: Laporan, Rekonsiliasi, Ekspor CSV/PDF, Keamanan, & Performa', 
       `);
       const planText = explainRes.rows.map((r) => r['QUERY PLAN']).join('\n');
       expect(planText).toMatch(/Index/i);
-    }, 20000);
+    }, 30000);
   });
 });

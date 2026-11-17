@@ -115,6 +115,11 @@ Semua perhitungan laporan hanya mencakup transaksi yang lolos filter dengan stat
 
 ### Rekonsiliasi Dashboard & Laporan
 Dashboard menjumlahkan `orders.grand_total` dan kini berlabel **"Total diterima hari ini"** agar konsisten dengan definisi laporan. Untuk rentang tanggal hari ini (`dateFrom = dateTo = hari ini WIB`) tanpa filter kategori/metode pembayaran, nilai **Total diterima** dan **Jumlah pesanan** pada laporan Admin **selalu identik** dengan **Total diterima hari ini** pada Dashboard Admin.
+
+### Batas & Kompatibilitas Ekspor (CSV Excel Indonesia & PDF)
+- **Batas baris ekspor**: maksimal **5.000 baris** untuk ekspor PDF (`GET /api/reports/export.pdf`) dan **50.000 baris** untuk ekspor CSV (`GET /api/reports/export.csv`). Permintaan yang melebihi batas ditolak dengan status HTTP `422` dan pesan *"Hasil terlalu banyak, persempit rentang tanggal atau filter."* tanpa pemotongan data diam-diam.
+- **CSV untuk Microsoft Excel pengaturan regional Indonesia (`;`)**: berkas CSV menyertakan BOM UTF-8 (`\uFEFF`) dan baris direktif pertama `sep=,` sebelum header kolom. Dengan opsi sederhana ini, Microsoft Excel desktop tetap memisahkan kolom dengan benar tanpa bergantung pada pengaturan pemisah daftar (`;` vs `,`) sistem operasi maupun dependensi tambahan `.xlsx`. Komprominya, Google Sheets atau penampil teks polos akan menampilkan baris pertama `sep=` sebelum baris header.
+- **Keamanan & format**: karakter pembuka rumus spreadsheet (`=`, `+`, `-`, `@`, tab, CR) pada kolom teks diawali kutip tunggal (`'`), seluruh nominal ditulis sebagai angka bulat mentah rupiah, dan nama berkas pada header `Content-Disposition` disanitasi ketat (`[A-Za-z0-9._-]`).
 - Rate limit login: maksimal **10 percobaan gagal per 15 menit per IP** (`skipSuccessfulRequests: true`).
 - Panjang password minimal **8 karakter** untuk pembuatan akun baru dan reset password.
 - Cookie JWT memakai `httpOnly: true`, `sameSite: 'lax'`, serta otomatis `secure: true` saat `NODE_ENV=production`. Origin CORS dibaca dari `CLIENT_ORIGIN`.

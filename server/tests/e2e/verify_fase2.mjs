@@ -215,10 +215,17 @@ async function run() {
     );
     process.stdout.write('PASS 4: High-cost confirmation modal in UI verified\n');
 
+    // Dismiss notification toast if present (exposes toast close button and clears bottom-right table actions)
+    const toastCloseBtn = await page.$('.toast-close');
+    if (toastCloseBtn) {
+      await toastCloseBtn.click();
+    }
+
     // 6. Stock adjustment UI + concurrent API check
     const adjustBtn = await page.evaluateHandle(() => {
       const rows = Array.from(document.querySelectorAll('.menu-table tbody tr'));
       const row = rows.find((r) => r.innerText.includes('Menu Uji Margin'));
+      row.scrollIntoView({ block: 'center' });
       return row.querySelector('button');
     });
     await adjustBtn.click();

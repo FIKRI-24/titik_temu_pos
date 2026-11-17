@@ -25,7 +25,7 @@ export function ToastProvider({ children }) {
   }, []);
 
   const success = useCallback((msg) => showToast(msg, 'success'), [showToast]);
-  const error = useCallback((msg) => showToast(msg, 'error', 5500), [showToast]);
+  const error = useCallback((msg) => showToast(msg, 'error', 5000), [showToast]);
   const warning = useCallback((msg) => showToast(msg, 'warning', 4500), [showToast]);
 
   return (

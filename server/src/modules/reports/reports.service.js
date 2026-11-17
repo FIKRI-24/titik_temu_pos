@@ -3,6 +3,16 @@ import PDFDocument from 'pdfkit';
 import { pool } from '../../config/db.js';
 import { formatRupiah } from '../../utils/money.js';
 
+export const MAX_CSV_ROWS = 50000;
+export const MAX_PDF_ROWS = 5000;
+
+export function sanitizeExportFilename(rawName) {
+  const cleaned = String(rawName || 'laporan-penjualan')
+    .replace(/[^A-Za-z0-9._-]/g, '-')
+    .replace(/^\.+/, '');
+  return cleaned || 'laporan-penjualan';
+}
+
 const SORT_COLUMN_MAP = Object.freeze({
   created_at: 'o.created_at',
   invoice_number: 'o.invoice_number',
@@ -406,11 +416,28 @@ export async function getReportSummary(filters, dbPool = pool) {
   };
 }
 
+export async function countMatchingReportOrders(filters, dbPool = pool) {
+  const { whereSql, params } = buildReportWhere(filters, { summaryOnly: false });
+  const res = await dbPool.query(
+    `SELECT COUNT(*)::int AS total FROM orders o WHERE ${whereSql}`,
+    params
+  );
+  return res.rows[0].total;
+}
+
 /**
- * Generate RFC 4180 CSV with UTF-8 BOM, raw integer numbers, WIB timestamps,
- * formula-injection protection, and unpaginated rows matching active filters.
+ * Generate RFC 4180 CSV with UTF-8 BOM + `sep=,` Excel directive, raw integer numbers,
+ * WIB timestamps, formula-injection protection, and unpaginated rows matching active filters.
  */
 export async function generateReportCsv(filters, dbPool = pool) {
+  const totalCount = await countMatchingReportOrders(filters, dbPool);
+  if (totalCount > MAX_CSV_ROWS) {
+    const err = new Error('Hasil terlalu banyak, persempit rentang tanggal atau filter.');
+    err.status = 422;
+    err.code = 'EXPORT_LIMIT_EXCEEDED';
+    throw err;
+  }
+
   const rows = await getAllFilteredReportOrders(filters, dbPool);
 
   const headers = [
@@ -429,7 +456,7 @@ export async function generateReportCsv(filters, dbPool = pool) {
     'Status',
   ];
 
-  const lines = [headers.map((h) => formatCsvCell(h)).join(',')];
+  const lines = ['sep=,', headers.map((h) => formatCsvCell(h)).join(',')];
 
   for (const r of rows) {
     const tipeLabel = r.tipe_pesanan === 'dine_in' ? 'Dine-In' : 'Takeaway';
@@ -463,6 +490,14 @@ export async function generateReportCsv(filters, dbPool = pool) {
  * wrapped multi-line columns, summary metrics, active filters, and page numbers.
  */
 export async function generateReportPdf(filters, dbPool = pool) {
+  const totalCount = await countMatchingReportOrders(filters, dbPool);
+  if (totalCount > MAX_PDF_ROWS) {
+    const err = new Error('Hasil terlalu banyak, persempit rentang tanggal atau filter.');
+    err.status = 422;
+    err.code = 'EXPORT_LIMIT_EXCEEDED';
+    throw err;
+  }
+
   const [reportSummary, rows] = await Promise.all([
     getReportSummary(filters, dbPool),
     getAllFilteredReportOrders(filters, dbPool),
@@ -603,13 +638,14 @@ export async function generateReportPdf(filters, dbPool = pool) {
 
       doc.font('Helvetica').fontSize(7.8);
       let maxTextHeight = 10;
-      for (const col of columns) {
-        const h = doc.heightOfString(cellTexts[col.key], {
-          width: col.width - 8,
-          align: col.align,
-        });
-        if (h > maxTextHeight) {
-          maxTextHeight = h;
+      for (const colKey of ['kasir', 'layanan']) {
+        const textVal = cellTexts[colKey];
+        if (textVal.includes('\n') || textVal.length > 14) {
+          const colW = colKey === 'kasir' ? 80 : 84;
+          const h = doc.heightOfString(textVal, { width: colW, align: 'left' });
+          if (h > maxTextHeight) {
+            maxTextHeight = h;
+          }
         }
       }
       const rowHeight = Math.max(20, Math.ceil(maxTextHeight) + 8);

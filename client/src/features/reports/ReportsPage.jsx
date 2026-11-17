@@ -453,6 +453,14 @@ export default function ReportsPage() {
         </div>
       )}
 
+      {totalOrders > 5000 && (
+        <div className="report-alert report-alert-error" role="status">
+          <span>
+            Hasil terlalu banyak, persempit rentang tanggal atau filter (batas ekspor PDF: 5.000 baris; CSV: 50.000 baris; cocok saat ini: {totalOrders.toLocaleString('id-ID')} baris).
+          </span>
+        </div>
+      )}
+
       {/* Hierarchical Summary Bar */}
       <section className="reports-summary-grid" aria-label="Ringkasan angka laporan">
         <div className="summary-hero-card">

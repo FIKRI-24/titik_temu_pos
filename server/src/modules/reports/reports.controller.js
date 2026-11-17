@@ -4,6 +4,7 @@ import {
   getReportSummary,
   generateReportCsv,
   generateReportPdf,
+  sanitizeExportFilename,
 } from './reports.service.js';
 import { ok } from '../../utils/response.js';
 
@@ -28,7 +29,9 @@ export async function handleGetReportSummary(req, res, next) {
 export async function handleExportCsv(req, res, next) {
   try {
     const buffer = await generateReportCsv(req.query);
-    const filename = `laporan-penjualan-${req.query.dateFrom}_${req.query.dateTo}.csv`;
+    const filename = sanitizeExportFilename(
+      `laporan-penjualan-${req.query.dateFrom}_${req.query.dateTo}.csv`
+    );
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.send(buffer);
@@ -40,7 +43,9 @@ export async function handleExportCsv(req, res, next) {
 export async function handleExportPdf(req, res, next) {
   try {
     const buffer = await generateReportPdf(req.query);
-    const filename = `laporan-penjualan-${req.query.dateFrom}_${req.query.dateTo}.pdf`;
+    const filename = sanitizeExportFilename(
+      `laporan-penjualan-${req.query.dateFrom}_${req.query.dateTo}.pdf`
+    );
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.send(buffer);

@@ -255,7 +255,8 @@ async function run() {
     assert.equal(csvBytes[0], 0xef, 'CSV harus memiliki UTF-8 BOM');
     assert.equal(csvBytes[1], 0xbb);
     assert.equal(csvBytes[2], 0xbf);
-    assert.ok(csvBytes.toString('utf8').includes('No. Faktur,Tanggal & Jam (WIB)'));
+    const csvString = csvBytes.toString('utf8');
+    assert.ok(csvString.startsWith('\uFEFFsep=,\r\nNo. Faktur,Tanggal & Jam (WIB)'));
 
     await page.waitForFunction(
       () => !document.querySelector('[data-testid="btn-export-pdf"]').disabled
