@@ -194,9 +194,9 @@
   font-size: var(--text-xs);
   color: var(--color-gray-700);
   background: var(--color-kertas);
-  border-left: 3px solid var(--color-kunyit);
+  border: 1px solid var(--color-gray-200);
   padding: 8px 12px;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-radius: var(--radius-sm);
 }
 
 /* Error / Alert banners */
@@ -228,7 +228,6 @@
 .summary-hero-card {
   background: #f4f9f7;
   border: 1px solid var(--color-hijau-pandan);
-  border-left: 4px solid var(--color-hijau-pandan);
   border-radius: var(--radius-card);
   padding: var(--space-5);
   display: flex;

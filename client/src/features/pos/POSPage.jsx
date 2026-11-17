@@ -12,14 +12,6 @@ import './pos.css';
 
 const QUICK_NOTES = ['Less sugar', 'Extra ice', 'No onion'];
 const QUICK_CASH = [50000, 100000, 150000, 200000];
-const FEATURED_CODES = new Set(['COF-004', 'FOD-001']);
-
-const CATEGORY_ACCENT = {
-  coffee: '#0E6B5C',
-  'non-coffee': '#2C6E91',
-  food: '#C47D1A',
-  pastry: '#8B4F6B',
-};
 
 function formatRp(n) {
   return `Rp ${Number(n || 0).toLocaleString('id-ID')}`;
@@ -362,8 +354,6 @@ export default function POSPage() {
             {filteredProducts.map((p) => {
               const outOfStock = p.stok <= 0;
               const inCart = cart.find((c) => c.product.id === p.id);
-              const accent = CATEGORY_ACCENT[p.kategori_slug] || '#0E6B5C';
-              const isFeatured = FEATURED_CODES.has(p.kode_produk);
 
               return (
                 <button
@@ -371,15 +361,10 @@ export default function POSPage() {
                   type="button"
                   disabled={outOfStock}
                   onClick={() => addToCart(p)}
-                  className={`pos-menu-card ${isFeatured ? 'featured' : ''} ${
+                  className={`pos-menu-card ${
                     outOfStock ? 'out-of-stock' : ''
                   } ${inCart ? 'in-cart' : ''}`}
                 >
-                  <span
-                    className="menu-cat-stripe"
-                    style={{ backgroundColor: accent }}
-                    aria-hidden="true"
-                  />
                   <div className="pos-card-top">
                     <span className="pos-card-cat">{p.nama_kategori}</span>
                     {inCart && (

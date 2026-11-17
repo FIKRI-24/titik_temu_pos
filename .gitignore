@@ -20,6 +20,17 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 
+# Temporary & editor files
+*.tmp
+*.bak
+*.swp
+*~
+.vscode/
+.idea/
+
+# Testing & coverage
+coverage/
+
 # OS files
 .DS_Store
 Thumbs.db
