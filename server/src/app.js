@@ -13,6 +13,7 @@ import categoriesRoutes from './modules/categories/categories.routes.js';
 import productsRoutes from './modules/products/products.routes.js';
 import vouchersRoutes from './modules/vouchers/vouchers.routes.js';
 import ordersRoutes from './modules/orders/orders.routes.js';
+import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/vouchers', vouchersRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 404 handler
 app.use(notFound);

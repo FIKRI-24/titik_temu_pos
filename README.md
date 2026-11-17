@@ -87,6 +87,8 @@ PGPASSWORD="password_postgres_anda" psql -U postgres -d titik_temu_pos -v ON_ERR
 - Semua nominal uang disimpan sebagai integer rupiah (`INTEGER`) tanpa floating point.
 - Pajak PB1 sebesar 10% dihitung dari `(subtotal - diskon)`, dibulatkan ke rupiah terdekat.
 - Omset dan jumlah pesanan hari ini menghitung pesanan berstatus `diproses` dan `selesai` (tidak termasuk `dibatalkan`).
+- **Menu terlaris hari ini**: dihitung berdasarkan total kuantitas terjual terbanyak pada hari berjalan (zona `Asia/Jakarta`). Jika terdapat dua atau lebih menu dengan total kuantitas sama (seri), pemenang ditentukan secara alfabetis berdasarkan nama produk (`ORDER BY total_qty DESC, nama_produk ASC`).
+- **Distribusi penjualan kategori (dashboard)**: menghitung subtotal baris item (`order_details.subtotal_baris`) dari pesanan non-batal pada periode 7 hari terakhir agar mencerminkan kontribusi per kategori.
 - Rate limit login: maksimal **10 percobaan gagal per 15 menit per IP** (`skipSuccessfulRequests: true`), sehingga login yang berhasil tidak menghabiskan kuota batas percobaan.
 - Panjang password minimal **8 karakter** untuk pembuatan akun baru dan reset password.
 - Cookie JWT memakai `httpOnly: true`, `sameSite: 'lax'`, serta otomatis `secure: true` saat `NODE_ENV=production`. Origin CORS dibaca dari variabel environment `CLIENT_ORIGIN`.

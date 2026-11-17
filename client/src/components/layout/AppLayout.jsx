@@ -1,4 +1,5 @@
 // src/components/layout/AppLayout.jsx
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext.jsx';
 import './layout.css';
@@ -6,26 +7,58 @@ import './layout.css';
 export function AppLayout() {
   const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
+    setMobileMenuOpen(false);
     await logout();
     navigate('/login', { replace: true });
   };
 
+  const closeMenu = () => setMobileMenuOpen(false);
+
   return (
     <div className="app-shell">
-      <aside className="app-sidebar">
+      <header className="mobile-topbar">
+        <div className="mobile-brand">
+          <div className="brand-mark">TT</div>
+          <span className="brand-title">Titik Temu</span>
+        </div>
+        <button
+          type="button"
+          className="mobile-menu-btn"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="app-sidebar-nav"
+          onClick={() => setMobileMenuOpen((v) => !v)}
+        >
+          {mobileMenuOpen ? 'Tutup' : 'Menu'}
+        </button>
+      </header>
+
+      {mobileMenuOpen && (
+        <div
+          className="mobile-sidebar-backdrop"
+          onClick={closeMenu}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        id="app-sidebar-nav"
+        className={`app-sidebar ${mobileMenuOpen ? 'open' : ''}`}
+      >
         <div className="brand-header">
           <div className="brand-mark">TT</div>
           <div className="brand-info">
             <h1 className="brand-title">Titik Temu</h1>
-            <span className="brand-subtitle">POS & Kasir Kafe</span>
+            <span className="brand-subtitle">POS &amp; Kasir Kafe</span>
           </div>
         </div>
 
         <nav className="nav-menu" aria-label="Menu utama">
           <NavLink
             to="/dashboard"
+            onClick={closeMenu}
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
             <span>Dashboard</span>
@@ -33,6 +66,7 @@ export function AppLayout() {
 
           <NavLink
             to="/transaksi"
+            onClick={closeMenu}
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
             <span>Transaksi baru</span>
@@ -40,6 +74,7 @@ export function AppLayout() {
 
           <NavLink
             to="/riwayat"
+            onClick={closeMenu}
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
             <span>Riwayat pesanan</span>
@@ -47,6 +82,7 @@ export function AppLayout() {
 
           <NavLink
             to="/menu"
+            onClick={closeMenu}
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
             <span>{isAdmin ? 'Kelola menu' : 'Daftar menu'}</span>
@@ -58,6 +94,7 @@ export function AppLayout() {
               <div className="nav-section-title">Administrasi</div>
               <NavLink
                 to="/pengguna"
+                onClick={closeMenu}
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
                 <span>Kelola pengguna</span>

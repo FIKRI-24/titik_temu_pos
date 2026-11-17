@@ -311,11 +311,11 @@ async function run() {
     process.stdout.write('PASS 5: Two concurrent browsers ordering last remaining stock: one 201, one 409\n');
 
     // 8. Mobile 360px ticket drawer toggle
-    await page.goto(`${BASE_URL}/transaksi`, { waitUntil: 'networkidle0' });
     await page.setViewport({ width: 360, height: 780 });
-    await page.waitForSelector('.mobile-ticket-toggle');
+    await page.goto(`${BASE_URL}/transaksi`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('.mobile-ticket-toggle', { visible: true });
     await page.click('.mobile-ticket-toggle');
-    await page.waitForSelector('.pos-ticket-panel.open');
+    await page.waitForSelector('.pos-ticket-panel.open', { visible: true });
     process.stdout.write('PASS 6: Mobile POS ticket drawer toggles cleanly at 360px\n');
 
     assert.equal(pageErrors.length, 0, `Unexpected page errors: ${pageErrors.join(', ')}`);

@@ -20,6 +20,7 @@ async function run() {
   try {
     const context = await browser.createBrowserContext();
     const page = await context.newPage();
+    await page.setViewport({ width: 1440, height: 900 });
     page.on('pageerror', (err) => pageErrors.push(err.message));
 
     // 1. Login as kasir1 and verify read-only UI + 403 API enforcement
