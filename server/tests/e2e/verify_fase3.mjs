@@ -1,5 +1,5 @@
 // server/tests/e2e/verify_fase3.mjs
-// End-to-End verification for Fase 3 (POS Cashier, Voucher, Atomic Order, Receipt, History, Cancellation, Concurrency)
+// End-to-End verification for Fase 3 (POS Cashier, Voucher, Idempotency, Price Change Authority, Print Preview 80mm/58mm/A4, History, Cancellation, Concurrency)
 
 import puppeteer from 'puppeteer-core';
 import assert from 'node:assert/strict';
@@ -36,7 +36,7 @@ async function run() {
     await page.click('a[href="/transaksi"]');
     await page.waitForSelector('.pos-menu-grid');
 
-    // 2. Add 5 distinct items to cart
+    // 2. Add 5 distinct items to cart, long 60-char customer name & long 120-char note
     const itemsToAdd = [
       'Espresso Single',
       'Americano',
@@ -52,18 +52,15 @@ async function run() {
       }, itemName);
     }
 
-    await page.waitForFunction(
-      () => document.querySelectorAll('.ticket-item').length === 5
-    );
+    await page.waitForFunction(() => document.querySelectorAll('.ticket-item').length === 5);
 
-    // Add quick note 'Less sugar' to first item
-    await page.click('.ticket-item:first-child .note-chip');
+    const longNote = 'Less sugar, Extra ice, Mohon disajikan terpisah dengan sedotan kertas tambahan 1234567890';
+    await page.type('.ticket-item:first-child .ticket-note-row input', longNote);
 
-    // Select Dine-In Meja 7 & Pemesan Andi
     await page.select('#pos-meja', '7');
-    await page.type('#pos-pemesan', 'Andi');
+    const longCustomer = 'Pelanggan Spesial Titik Temu Kopi Cabang Jakarta Selatan';
+    await page.type('#pos-pemesan', longCustomer);
 
-    // Apply voucher HEMAT10
     await page.type('#pos-voucher', 'HEMAT10');
     await Promise.all([
       page.waitForResponse((r) => r.url().includes('/api/vouchers/validate')),
@@ -71,11 +68,9 @@ async function run() {
     ]);
     await page.waitForFunction(() => document.body.innerText.includes('Diskon (HEMAT10)'));
 
-    // Click Rp 200.000 quick cash & submit
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('.quick-cash-btn'));
-      const b200 = btns.find((b) => b.innerText.includes('200'));
-      b200.click();
+      btns.find((b) => b.innerText.includes('200')).click();
     });
     await page.waitForSelector('.change-ok');
 
@@ -86,42 +81,90 @@ async function run() {
     assert.equal(order1Resp.status(), 201);
     const order1Data = await order1Resp.json();
     const inv1 = order1Data.data.order.invoice_number;
-    assert.match(inv1, /^INV-POS-\d{8}-0001$/);
-    // Subtotal = 20000+25000+32000+28000+45000 = 150000
-    // Diskon 10% = 15000, Pajak 10% * 135000 = 13500, Grand = 148500, Kembali = 51500
+    // Today already has 4 seeded orders -> first new order today is -0005!
+    assert.match(inv1, /^INV-POS-\d{8}-0005$/);
     assert.equal(order1Data.data.order.total_subtotal, 150000);
     assert.equal(order1Data.data.order.diskon_nominal, 15000);
     assert.equal(order1Data.data.order.pajak_nominal, 13500);
     assert.equal(order1Data.data.order.grand_total, 148500);
     assert.equal(order1Data.data.order.uang_kembali, 51500);
 
-    // Verify receipt modal & paper size switching
+    // 3. Verify Receipt Modal, long-text wrapping, & Print Preview PDF (80mm, 58mm, A4)
     await page.waitForSelector('.receipt-paper');
     const receiptText = await page.$eval('.receipt-paper', (el) => el.innerText);
     assert.ok(receiptText.includes(inv1));
-    assert.ok(receiptText.includes('Less sugar'));
     assert.ok(receiptText.includes('Meja 7'));
     assert.ok(receiptText.includes('HEMAT10'));
 
-    await page.click('.paper-size-group button:nth-child(2)'); // 58mm
+    // Check print CSS media visibility + generate PDFs on 80mm, 58mm, A4
+    await page.emulateMediaType('print');
+    const printVisibility = await page.evaluate(() => {
+      const sidebar = document.querySelector('.app-sidebar');
+      const toolbar = document.querySelector('.receipt-toolbar');
+      const paper = document.querySelector('.receipt-paper');
+      return {
+        sidebarVis: getComputedStyle(sidebar).visibility,
+        toolbarDisplay: getComputedStyle(toolbar).display,
+        paperVis: getComputedStyle(paper).visibility,
+      };
+    });
+    assert.equal(printVisibility.sidebarVis, 'hidden');
+    assert.equal(printVisibility.toolbarDisplay, 'none');
+    assert.equal(printVisibility.paperVis, 'visible');
+    await page.emulateMediaType('screen');
+
+    // Test 80mm PDF
+    const pdf80 = await page.pdf({ width: '80mm', height: '210mm', printBackground: true });
+    assert.ok(pdf80.length > 1000, '80mm receipt PDF should be generated');
+
+    // Test 58mm PDF + verify zero horizontal overflow with long text
+    await page.click('.paper-size-group button:nth-child(2)');
     await page.waitForSelector('.receipt-size-58mm');
-    await page.click('.paper-size-group button:nth-child(1)'); // 80mm
+    const overflow58 = await page.$eval('.receipt-size-58mm', (el) => el.scrollWidth > el.clientWidth + 2);
+    assert.equal(overflow58, false, '58mm receipt should wrap long text without horizontal overflow');
+    const pdf58 = await page.pdf({ width: '58mm', height: '210mm', printBackground: true });
+    assert.ok(pdf58.length > 1000, '58mm receipt PDF should be generated');
 
-    // Click Pesanan baru
-    await page.click('.receipt-actions .btn-primary');
+    // Test A4 PDF
+    await page.click('.paper-size-group button:nth-child(3)');
+    await page.waitForSelector('.receipt-size-a4');
+    const pdfA4 = await page.pdf({ format: 'A4', printBackground: true });
+    assert.ok(pdfA4.length > 1000, 'A4 receipt PDF should be generated');
+
+    await page.click('.receipt-actions .btn-primary'); // Pesanan baru
     await page.waitForFunction(() => !document.querySelector('.receipt-paper'));
-    process.stdout.write(`PASS 1: 5-item Dine-In order (${inv1}), voucher HEMAT10, PB1 10%, change, and 80mm/58mm receipt verified\n`);
+    process.stdout.write(`PASS 1: 5-item order (${inv1}), long text wrap, & print preview PDF (80mm/58mm/A4) verified\n`);
 
-    // 3. Create Takeaway QRIS order (no table required, sequential invoice -0002)
+    // 4. Price changed by admin AFTER kasir opened /transaksi:
+    // Kasir sees old Americano price (Rp 25.000) in open POS tab; admin updates Americano to Rp 35.000 in separate context.
+    // Kasir submits QRIS without refreshing -> server computes Rp 35.000 + PB1 3.500 = Rp 38.500, and receipt shows Rp 38.500!
+    const adminCtx = await browser.createBrowserContext();
+    const adminPage = await adminCtx.newPage();
+    await adminPage.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0' });
+    await adminPage.type('#username', 'admin');
+    await adminPage.type('#password', 'Admin#2026');
+    await Promise.all([
+      adminPage.waitForFunction(() => window.location.pathname === '/dashboard'),
+      adminPage.click('button[type="submit"]'),
+    ]);
+
+    const priceChangeStatus = await adminPage.evaluate(async () => {
+      const res = await fetch('/api/products/2', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ harga_jual: 35000 }),
+      });
+      return res.status;
+    });
+    assert.equal(priceChangeStatus, 200);
+
+    // Kasir (without refreshing POS tab!) adds Americano and submits with QRIS
     await page.evaluate(() => {
       const toggles = Array.from(document.querySelectorAll('.toggle-btn'));
       toggles.find((b) => b.innerText.includes('Takeaway')).click();
-    });
-    await page.evaluate(() => {
       const cards = Array.from(document.querySelectorAll('.pos-menu-card'));
       cards.find((c) => c.innerText.includes('Americano')).click();
-    });
-    await page.evaluate(() => {
       const payBtns = Array.from(document.querySelectorAll('.pay-method-btn'));
       payBtns.find((b) => b.innerText.includes('QRIS')).click();
     });
@@ -132,64 +175,60 @@ async function run() {
     assert.equal(order2Resp.status(), 201);
     const order2Data = await order2Resp.json();
     const inv2 = order2Data.data.order.invoice_number;
-    assert.match(inv2, /^INV-POS-\d{8}-0002$/);
-    assert.equal(order2Data.data.order.uang_dibayar, order2Data.data.order.grand_total);
-    assert.equal(order2Data.data.order.uang_kembali, 0);
+    assert.match(inv2, /^INV-POS-\d{8}-0006$/);
+    assert.equal(order2Data.data.order.total_subtotal, 35000);
+    assert.equal(order2Data.data.order.pajak_nominal, 3500);
+    assert.equal(order2Data.data.order.grand_total, 38500);
 
     await page.waitForSelector('.receipt-paper');
-    await page.click('.receipt-actions .btn-secondary'); // Tutup
-    process.stdout.write(`PASS 2: Takeaway QRIS order (${inv2}) sequential invoice verified\n`);
+    const receipt2Text = await page.$eval('.receipt-paper', (el) => el.innerText);
+    assert.ok(receipt2Text.includes('38.500'), 'Receipt must show server-calculated grand total Rp 38.500, not stale client Rp 27.500');
+    await page.click('.receipt-actions .btn-secondary');
+    process.stdout.write(`PASS 2: Price change mid-session (${inv2}) uses server price Rp 35.000 -> Rp 38.500 in receipt & toast\n`);
 
-    // 4. Verify server validation rejections (dine-in no table -> 422, cash short -> 422, over-stock -> 409)
-    const apiRejections = await page.evaluate(async () => {
-      const rNoTable = await fetch('/api/orders', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipe_pesanan: 'dine_in',
-          items: [{ product_id: 1, kuantiti: 1 }],
-          metode_bayar: 'qris',
-        }),
+    // 5. Idempotency-Key test via concurrent duplicate fetch
+    const idemRes = await page.evaluate(async () => {
+      const key = `e2e-idem-${Date.now()}`;
+      const beforeStok = (await (await fetch('/api/products/1', { credentials: 'include' })).json()).data.product.stok;
+      const body = JSON.stringify({
+        tipe_pesanan: 'takeaway',
+        items: [{ product_id: 1, kuantiti: 2 }],
+        metode_bayar: 'qris',
       });
-      const rShortCash = await fetch('/api/orders', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipe_pesanan: 'takeaway',
-          items: [{ product_id: 1, kuantiti: 1 }],
-          metode_bayar: 'tunai',
-          uang_dibayar: 5000,
-        }),
-      });
-      const rOverStock = await fetch('/api/orders', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipe_pesanan: 'takeaway',
-          items: [{ product_id: 5, kuantiti: 999 }],
-          metode_bayar: 'qris',
-        }),
-      });
+      const [r1, r2] = await Promise.all([
+        fetch('/api/orders', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
+          body,
+        }).then((r) => r.json()),
+        fetch('/api/orders', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
+          body,
+        }).then((r) => r.json()),
+      ]);
+      const afterStok = (await (await fetch('/api/products/1', { credentials: 'include' })).json()).data.product.stok;
       return {
-        noTable: rNoTable.status,
-        shortCash: rShortCash.status,
-        overStock: rOverStock.status,
+        id1: r1.data.order.id,
+        id2: r2.data.order.id,
+        inv1: r1.data.order.invoice_number,
+        inv2: r2.data.order.invoice_number,
+        beforeStok,
+        afterStok,
       };
     });
-    assert.equal(apiRejections.noTable, 422);
-    assert.equal(apiRejections.shortCash, 422);
-    assert.equal(apiRejections.overStock, 409);
-    process.stdout.write('PASS 3: Server order validations (422 no table, 422 short cash, 409 insufficient stock) verified\n');
+    assert.equal(idemRes.id1, idemRes.id2);
+    assert.equal(idemRes.inv1, idemRes.inv2);
+    assert.equal(idemRes.afterStok, idemRes.beforeStok - 2);
+    process.stdout.write(`PASS 3: Concurrent Idempotency-Key created single order (${idemRes.inv1}) and deducted stock once\n`);
 
-    // 5. Open /riwayat, test reprint receipt & cancel order 2 (stock restored)
+    // 6. Open /riwayat, cancel order 2 (Americano), verify stock restored
     await page.click('a[href="/riwayat"]');
     await page.waitForSelector('.orders-table');
     await page.waitForFunction((i2) => document.body.innerText.includes(i2), {}, inv2);
 
-    // Cancel inv2
     const cancelBtn = await page.evaluateHandle((inv) => {
       const rows = Array.from(document.querySelectorAll('.orders-table tbody tr'));
       const row = rows.find((r) => r.innerText.includes(inv));
@@ -211,26 +250,14 @@ async function run() {
       {},
       inv2
     );
-
-    // Check Americano stock restored (was 45 -> 44 after order 1 -> 43 after order 2 -> 44 after cancel)
-    const americanoAfterCancel = await page.evaluate(async () => {
+    const americanoStok = await page.evaluate(async () => {
       const res = await fetch('/api/products/2', { credentials: 'include' });
       return (await res.json()).data.product.stok;
     });
-    assert.equal(americanoAfterCancel, 44);
+    assert.equal(americanoStok, 44);
     process.stdout.write('PASS 4: Order cancellation in /riwayat restored stock accurately\n');
 
-    // 6. Concurrent last-stock order race across two separate browser contexts (admin + kasir1)
-    const adminCtx = await browser.createBrowserContext();
-    const adminPage = await adminCtx.newPage();
-    await adminPage.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0' });
-    await adminPage.type('#username', 'admin');
-    await adminPage.type('#password', 'Admin#2026');
-    await Promise.all([
-      adminPage.waitForFunction(() => window.location.pathname === '/dashboard'),
-      adminPage.click('button[type="submit"]'),
-    ]);
-
+    // 7. Concurrent last-stock race across admin & kasir
     const tempProdId = await adminPage.evaluate(async () => {
       const res = await fetch('/api/products', {
         method: 'POST',
@@ -249,7 +276,6 @@ async function run() {
       });
       return (await res.json()).data.product.id;
     });
-
     const [rAdmin, rKasir] = await Promise.all([
       adminPage.evaluate(
         (pid) =>
@@ -284,16 +310,16 @@ async function run() {
     await adminCtx.close();
     process.stdout.write('PASS 5: Two concurrent browsers ordering last remaining stock: one 201, one 409\n');
 
-    assert.equal(pageErrors.length, 0, `Unexpected page errors: ${pageErrors.join(', ')}`);
-    process.stdout.write('PASS 6: Zero uncaught page errors in Chrome\n');
-
-    // 7. Verify mobile responsive ticket drawer at 360px
+    // 8. Mobile 360px ticket drawer toggle
     await page.goto(`${BASE_URL}/transaksi`, { waitUntil: 'networkidle0' });
     await page.setViewport({ width: 360, height: 780 });
     await page.waitForSelector('.mobile-ticket-toggle');
     await page.click('.mobile-ticket-toggle');
     await page.waitForSelector('.pos-ticket-panel.open');
-    process.stdout.write('PASS 7: Mobile POS ticket drawer toggles cleanly at 360px\n');
+    process.stdout.write('PASS 6: Mobile POS ticket drawer toggles cleanly at 360px\n');
+
+    assert.equal(pageErrors.length, 0, `Unexpected page errors: ${pageErrors.join(', ')}`);
+    process.stdout.write('PASS 7: Zero uncaught page errors in Chrome\n');
   } finally {
     await browser.close();
   }

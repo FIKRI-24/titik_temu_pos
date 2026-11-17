@@ -62,17 +62,19 @@ PGPASSWORD="password_postgres_anda" psql -U postgres -d titik_temu_pos -v ON_ERR
    Aplikasi dapat diakses di `http://localhost:5173`.
 
 ## Menjalankan Pengujian
-- **Unit test (Jest)**:
+- **Unit & Integration test (Jest)**:
   ```bash
   cd server
   npm test
   ```
-- **Uji End-to-End Fase 1 (Headless Chrome via `puppeteer-core`)**:
-  Pastikan server dan client sedang berjalan (dan database dalam kondisi bersih dengan `npm run db:setup`), lalu jalankan dari folder `server/`:
+  Jest secara otomatis membuat database sementara `titik_temu_pos_test`, menjalankan migrasi + seeder, mengeksekusi seluruh suite pengujian, lalu menghapus `titik_temu_pos_test` kembali sehingga database pengembangan (`titik_temu_pos`) tidak terpengaruh.
+- **Uji End-to-End Terisolasi (Headless Chrome via `puppeteer-core`)**:
+  Menjalankan skrip E2E terhadap database uji terisolasi `titik_temu_pos_test` dan server uji terpisah (port `3005` & `5175`):
   ```bash
-  node tests/e2e/verify_fase1.mjs
+  cd server
+  node tests/e2e/run_e2e.mjs tests/e2e/verify_fase1.mjs tests/e2e/verify_fase2.mjs tests/e2e/verify_fase3.mjs
   ```
-  *(Variabel opsional: `CHROME_PATH` jika lokasi Chrome berbeda, `E2E_CLIENT_URL` jika port berbeda.)*
+  *(Variabel opsional: `CHROME_PATH` jika lokasi Chrome berbeda.)*
 
 ## Akun Uji
 | Role | Username | Password |

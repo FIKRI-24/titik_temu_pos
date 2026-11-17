@@ -24,7 +24,7 @@ export const createOrderSchema = z
       .max(20, 'Nomor meja maksimal 20.')
       .nullable()
       .optional(),
-    nama_pemesan: z.string().trim().max(100, 'Nama pemesan maksimal 100 karakter.').nullable().optional(),
+    nama_pemesan: z.string().trim().max(60, 'Nama pemesan maksimal 60 karakter.').nullable().optional(),
     items: z
       .array(
         z.object({
@@ -32,11 +32,13 @@ export const createOrderSchema = z
           kuantiti: z
             .number({ invalid_type_error: 'Jumlah item harus berupa angka.' })
             .int('Jumlah item harus bilangan bulat.')
-            .min(1, 'Jumlah item minimal 1.'),
-          catatan_khusus: z.string().trim().max(200).nullable().optional(),
+            .min(1, 'Jumlah item minimal 1.')
+            .max(99, 'Jumlah item per baris maksimal 99.'),
+          catatan_khusus: z.string().trim().max(120, 'Catatan khusus maksimal 120 karakter.').nullable().optional(),
         })
       )
-      .min(1, 'Pilih minimal satu menu sebelum menyimpan pesanan.'),
+      .min(1, 'Pilih minimal satu menu sebelum menyimpan pesanan.')
+      .max(30, 'Maksimal 30 baris item per pesanan.'),
     voucher_kode: z.string().trim().max(50).nullable().optional(),
     metode_bayar: z.enum(['tunai', 'qris', 'transfer', 'debit'], {
       errorMap: () => ({ message: 'Metode pembayaran tidak valid.' }),
@@ -45,6 +47,7 @@ export const createOrderSchema = z
       .number({ invalid_type_error: 'Nominal uang diterima harus berupa angka.' })
       .int('Nominal uang diterima harus bilangan bulat.')
       .min(0, 'Nominal uang diterima tidak boleh negatif.')
+      .max(100000000, 'Nominal uang diterima maksimal Rp 100.000.000.')
       .optional(),
   })
   .superRefine((data, ctx) => {

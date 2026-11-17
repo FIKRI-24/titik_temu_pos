@@ -37,6 +37,7 @@ export default function POSPage() {
   const [tipePesanan, setTipePesanan] = useState('dine_in');
   const [nomorMeja, setNomorMeja] = useState('');
   const [namaPemesan, setNamaPemesan] = useState('');
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   // Voucher state
   const [voucherInput, setVoucherInput] = useState('');
@@ -120,6 +121,10 @@ export default function POSPage() {
       const existingIdx = prev.findIndex((c) => c.product.id === product.id);
       if (existingIdx >= 0) {
         const currentQty = prev[existingIdx].kuantiti;
+        if (currentQty >= 99) {
+          toast.warning('Jumlah per baris maksimal 99.');
+          return prev;
+        }
         if (currentQty + 1 > product.stok) {
           toast.warning(
             `Stok ${product.nama_produk} tersisa ${product.stok}. Kurangi jumlah atau pilih menu lain.`
@@ -130,8 +135,13 @@ export default function POSPage() {
           idx === existingIdx ? { ...c, kuantiti: c.kuantiti + 1 } : c
         );
       }
+      if (prev.length >= 30) {
+        toast.warning('Maksimal 30 baris item per pesanan.');
+        return prev;
+      }
       return [...prev, { product, kuantiti: 1, catatan_khusus: '' }];
     });
+    setIdempotencyKey(crypto.randomUUID());
   };
 
   const updateCartQty = (productId, delta) => {
@@ -140,6 +150,10 @@ export default function POSPage() {
         .map((c) => {
           if (c.product.id !== productId) return c;
           const nextQty = c.kuantiti + delta;
+          if (nextQty > 99) {
+            toast.warning('Jumlah per baris maksimal 99.');
+            return c;
+          }
           if (nextQty > c.product.stok) {
             toast.warning(`Stok ${c.product.nama_produk} tersisa ${c.product.stok}.`);
             return c;
@@ -148,6 +162,7 @@ export default function POSPage() {
         })
         .filter((c) => c.kuantiti > 0)
     );
+    setIdempotencyKey(crypto.randomUUID());
   };
 
   const updateCartNote = (productId, note) => {
@@ -183,6 +198,7 @@ export default function POSPage() {
     setMetodeBayar('tunai');
     setUangDibayarInput('');
     setMobileTicketOpen(false);
+    setIdempotencyKey(crypto.randomUUID());
   };
 
   const handleApplyVoucher = async (e) => {
@@ -226,6 +242,7 @@ export default function POSPage() {
     }
 
     const payload = {
+      idempotencyKey,
       tipe_pesanan: tipePesanan,
       nomor_meja: tipePesanan === 'dine_in' ? parseInt(nomorMeja, 10) : null,
       nama_pemesan: namaPemesan.trim() || null,
@@ -241,7 +258,9 @@ export default function POSPage() {
 
     try {
       const res = await createOrderMutation.mutateAsync(payload);
-      toast.success(`Pesanan ${res.order.invoice_number} tersimpan.`);
+      toast.success(
+        `Pesanan ${res.order.invoice_number} tersimpan (${formatRp(res.order.grand_total)}).`
+      );
       setCompletedOrder(res.order);
       resetOrderForm();
     } catch (err) {
@@ -464,8 +483,8 @@ export default function POSPage() {
                   type="text"
                   value={namaPemesan}
                   onChange={(e) => setNamaPemesan(e.target.value)}
-                  placeholder="Opsional"
-                  maxLength={100}
+                  placeholder="Opsional (maks. 60)"
+                  maxLength={60}
                 />
               </div>
             </div>
@@ -516,7 +535,8 @@ export default function POSPage() {
                       type="text"
                       value={catatan_khusus}
                       onChange={(e) => updateCartNote(product.id, e.target.value)}
-                      placeholder="Catatan khusus..."
+                      placeholder="Catatan khusus (maks. 120)..."
+                      maxLength={120}
                       aria-label={`Catatan untuk ${product.nama_produk}`}
                     />
                     <div className="quick-note-chips">
@@ -632,6 +652,7 @@ export default function POSPage() {
                     id="pos-uang-diterima"
                     type="number"
                     min="0"
+                    max="100000000"
                     step="100"
                     value={uangDibayarInput}
                     onChange={(e) => setUangDibayarInput(e.target.value)}

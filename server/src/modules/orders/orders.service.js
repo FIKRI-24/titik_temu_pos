@@ -48,10 +48,25 @@ export function calculateOrderTotals(itemsWithProducts, voucher = null) {
 export async function createOrder(userId, data, deps = {}) {
   const invoiceGenerator = deps.invoiceGenerator || generateInvoiceNumber;
   const dbPool = deps.pool || pool;
+  const rawIdemKey = deps.idempotencyKey ? String(deps.idempotencyKey).trim() : null;
+  const scopedIdemKey = rawIdemKey ? `${userId}:${rawIdemKey.slice(0, 80)}` : null;
   const client = await dbPool.connect();
 
   try {
     await client.query('BEGIN');
+
+    // Serialize concurrent duplicate submissions sharing the same Idempotency-Key
+    if (scopedIdemKey) {
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [scopedIdemKey]);
+      const existingOrderRes = await client.query(
+        `SELECT id FROM orders WHERE idempotency_key = $1`,
+        [scopedIdemKey]
+      );
+      if (existingOrderRes.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return getOrderById(existingOrderRes.rows[0].id, userId, 'admin', dbPool);
+      }
+    }
 
     // Aggregate requested quantity per product_id and sort ascending for deadlock-free locking
     const qtyByProductId = new Map();
@@ -160,14 +175,15 @@ export async function createOrder(userId, data, deps = {}) {
     // Insert order header
     const orderRes = await client.query(
       `INSERT INTO orders (
-         invoice_number, user_id, tipe_pesanan, nomor_meja, nama_pemesan,
+         invoice_number, idempotency_key, user_id, tipe_pesanan, nomor_meja, nama_pemesan,
          total_subtotal, diskon_nominal, voucher_kode, pajak_nominal, grand_total,
          metode_bayar, uang_dibayar, uang_kembali, status
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'diproses')
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'diproses')
        RETURNING id`,
       [
         invoiceNumber,
+        scopedIdemKey,
         userId,
         data.tipe_pesanan,
         nomorMeja,

@@ -220,7 +220,10 @@ export function useOrder(id) {
 export function useCreateOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data) => api.post('/orders', data),
+    mutationFn: ({ idempotencyKey, ...payload }) =>
+      api.post('/orders', payload, {
+        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['orders'] });
       qc.invalidateQueries({ queryKey: ['products'] });

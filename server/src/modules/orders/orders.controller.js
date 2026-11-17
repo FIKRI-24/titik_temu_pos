@@ -14,7 +14,8 @@ function parseId(rawId) {
 
 export async function handleCreateOrder(req, res, next) {
   try {
-    const order = await createOrder(req.user.id, req.body);
+    const idempotencyKey = req.get('Idempotency-Key')?.trim() || null;
+    const order = await createOrder(req.user.id, req.body, { idempotencyKey });
     return ok(res, { order }, 201);
   } catch (err) {
     next(err);

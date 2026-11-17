@@ -9,11 +9,16 @@ for (const key of required) {
   }
 }
 
+const resolvedDbName =
+  process.env.NODE_ENV === 'test'
+    ? process.env.TEST_DB_NAME || 'titik_temu_pos_test'
+    : process.env.DB_NAME;
+
 export const config = {
   db: {
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT, 10),
-    database: process.env.DB_NAME,
+    database: resolvedDbName,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
   },

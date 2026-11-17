@@ -84,7 +84,12 @@ INSERT INTO orders (invoice_number, user_id, tipe_pesanan, nomor_meja, nama_peme
 ('INV-POS-' || TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1, 'YYYYMMDD') || '-0001', 2, 'dine_in', 1, 'Putri', 112000, 11200, 'HEMAT10', 10080, 110880, 'tunai', 120000, 9120, 'selesai', (((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1) + TIME '08:00:00') AT TIME ZONE 'Asia/Jakarta'),
 ('INV-POS-' || TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1, 'YYYYMMDD') || '-0002', 2, 'takeaway', NULL, 'Reza', 63000, 0, NULL, 6300, 69300, 'qris', 69300, 0, 'selesai', (((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1) + TIME '10:00:00') AT TIME ZONE 'Asia/Jakarta'),
 ('INV-POS-' || TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1, 'YYYYMMDD') || '-0003', 1, 'dine_in', 6, 'Sari', 78000, 0, NULL, 7800, 85800, 'transfer', 85800, 0, 'selesai', (((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1) + TIME '13:00:00') AT TIME ZONE 'Asia/Jakarta'),
-('INV-POS-' || TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1, 'YYYYMMDD') || '-0004', 2, 'dine_in', 11, 'Tono', 45000, 0, NULL, 4500, 49500, 'tunai', 50000, 500, 'selesai', (((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1) + TIME '17:00:00') AT TIME ZONE 'Asia/Jakarta');
+('INV-POS-' || TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1, 'YYYYMMDD') || '-0004', 2, 'dine_in', 11, 'Tono', 45000, 0, NULL, 4500, 49500, 'tunai', 50000, 500, 'selesai', (((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1) + TIME '17:00:00') AT TIME ZONE 'Asia/Jakarta'),
+-- Hari ini (4 pesanan, zona waktu Asia/Jakarta)
+('INV-POS-' || TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta')::date, 'YYYYMMDD') || '-0001', 2, 'dine_in', 2, 'Lina', 56000, 0, NULL, 5600, 61600, 'tunai', 70000, 8400, 'selesai', (((NOW() AT TIME ZONE 'Asia/Jakarta')::date) + TIME '01:15:00') AT TIME ZONE 'Asia/Jakarta'),
+('INV-POS-' || TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta')::date, 'YYYYMMDD') || '-0002', 2, 'takeaway', NULL, 'Bagus', 70000, 5000, 'KOPI5000', 6500, 71500, 'qris', 71500, 0, 'selesai', (((NOW() AT TIME ZONE 'Asia/Jakarta')::date) + TIME '02:30:00') AT TIME ZONE 'Asia/Jakarta'),
+('INV-POS-' || TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta')::date, 'YYYYMMDD') || '-0003', 1, 'dine_in', 5, 'Citra', 106000, 10600, 'HEMAT10', 9540, 104940, 'transfer', 104940, 0, 'diproses', (((NOW() AT TIME ZONE 'Asia/Jakarta')::date) + TIME '04:00:00') AT TIME ZONE 'Asia/Jakarta'),
+('INV-POS-' || TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta')::date, 'YYYYMMDD') || '-0004', 2, 'dine_in', 8, 'Dimas', 91000, 0, NULL, 9100, 100100, 'debit', 100100, 0, 'diproses', (((NOW() AT TIME ZONE 'Asia/Jakarta')::date) + TIME '06:45:00') AT TIME ZONE 'Asia/Jakarta');
 
 -- ============================================================
 -- ORDER DETAILS (snapshot harga historis, jumlah tepat sama dengan total_subtotal)
@@ -165,7 +170,19 @@ INSERT INTO order_details (order_id, product_id, harga_satuan, harga_pokok_satua
 (24, 12, 38000, 15000, 1, 38000),
 (24, 1, 20000, 8000, 2, 40000),
 -- Order 25: 45000
-(25, 11, 45000, 18000, 1, 45000);
+(25, 11, 45000, 18000, 1, 45000),
+-- Order 26 (Hari ini): 56000
+(26, 4, 28000, 10000, 1, 28000),
+(26, 14, 28000, 10000, 1, 28000),
+-- Order 27 (Hari ini): 70000
+(27, 11, 45000, 18000, 1, 45000),
+(27, 2, 25000, 9000, 1, 25000),
+-- Order 28 (Hari ini): 106000
+(28, 3, 32000, 12000, 2, 64000),
+(28, 16, 42000, 16000, 1, 42000),
+-- Order 29 (Hari ini): 91000
+(29, 4, 28000, 10000, 2, 56000),
+(29, 6, 35000, 14000, 1, 35000);
 
 -- ============================================================
 -- ORDER COUNTERS
@@ -177,5 +194,6 @@ INSERT INTO order_counters (tanggal, nomor_terakhir) VALUES
 ((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 4, 3),
 ((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 3, 4),
 ((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 2, 4),
-((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1, 4)
+((NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1, 4),
+((NOW() AT TIME ZONE 'Asia/Jakarta')::date, 4)
 ON CONFLICT (tanggal) DO UPDATE SET nomor_terakhir = EXCLUDED.nomor_terakhir;

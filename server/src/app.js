@@ -26,7 +26,7 @@ app.use(cors({
   origin: config.clientOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
 }));
 
 // Prevent browser/proxy caching of API responses (protects against back-button leak after logout)

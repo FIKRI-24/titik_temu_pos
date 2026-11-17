@@ -83,6 +83,8 @@
   border: 1px solid var(--color-gray-200);
   box-shadow: var(--shadow-md);
   font-variant-numeric: tabular-nums;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Serrated bottom edge mimicking torn thermal paper */

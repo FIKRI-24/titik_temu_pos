@@ -15,14 +15,15 @@ class ApiError extends Error {
 
 async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`;
-  
+  const { headers: customHeaders, ...restOptions } = options;
+
   const config = {
     credentials: 'include',
+    ...restOptions,
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...customHeaders,
     },
-    ...options,
   };
 
   if (options.body && typeof options.body === 'object') {
@@ -59,7 +60,7 @@ export const api = {
     const url = params ? `${path}?${new URLSearchParams(params)}` : path;
     return request(url, { method: 'GET' });
   },
-  post: (path, body) => request(path, { method: 'POST', body }),
+  post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   delete: (path) => request(path, { method: 'DELETE' }),
   
