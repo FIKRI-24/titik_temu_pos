@@ -326,4 +326,62 @@
   .form-grid-2 {
     grid-template-columns: 1fr;
   }
+
+  .menu-page .table-card {
+    background: transparent;
+    border: none;
+    overflow-x: visible;
+  }
+
+  .menu-table thead {
+    display: none;
+  }
+
+  .menu-table,
+  .menu-table tbody,
+  .menu-table tr,
+  .menu-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .menu-table tr {
+    background: #ffffff;
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-card);
+    padding: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+
+  .menu-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-3);
+    text-align: right;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--color-gray-100);
+  }
+
+  .menu-table td::before {
+    content: attr(data-label);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-gray-600);
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  .menu-table td:last-child {
+    border-bottom: none;
+  }
+
+  .menu-table td[data-label='Aksi'] {
+    justify-content: flex-end;
+    padding-top: 10px;
+  }
+
+  .menu-table td[data-label='Aksi']::before {
+    display: none;
+  }
 }

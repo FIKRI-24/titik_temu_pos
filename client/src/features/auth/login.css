@@ -42,8 +42,18 @@
 
 .login-desc {
   font-size: var(--text-sm);
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
   margin-top: 4px;
+}
+
+.login-alert-warning {
+  background: var(--color-kunyit-light);
+  border: 1px solid #d49419;
+  color: #6b4403;
+  padding: 10px 14px;
+  border-radius: var(--radius-input);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-5);
 }
 
 .login-alert-error {
@@ -78,6 +88,7 @@
 }
 
 .form-group input {
+  min-height: 44px;
   padding: 10px 12px;
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-input);
@@ -93,6 +104,7 @@
 }
 
 .btn-login {
+  min-height: 44px;
   margin-top: var(--space-2);
   padding: 12px;
   background: var(--color-hijau-pandan);

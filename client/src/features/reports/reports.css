@@ -226,8 +226,9 @@
 }
 
 .summary-hero-card {
-  background: linear-gradient(155deg, #ffffff 0%, #f2f8f6 100%);
+  background: #f4f9f7;
   border: 1px solid var(--color-hijau-pandan);
+  border-left: 4px solid var(--color-hijau-pandan);
   border-radius: var(--radius-card);
   padding: var(--space-5);
   display: flex;
@@ -240,8 +241,6 @@
 .summary-hero-eyebrow {
   font-size: var(--text-xs);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--color-hijau-pandan);
 }
 

@@ -14,6 +14,7 @@ import {
 } from '../../api/hooks.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../../components/ui/ToastContext.jsx';
+import { Modal } from '../../components/ui/Modal.jsx';
 import './menu.css';
 
 function formatRp(n) {
@@ -410,11 +411,17 @@ export default function MenuPage() {
               ? 'Tidak ada menu yang cocok dengan pencarian atau filter.'
               : 'Belum ada menu terdaftar.'}
           </p>
-          {hasActiveFilter && (
-            <button type="button" className="btn-secondary" onClick={resetFilters}>
-              Reset filter
-            </button>
-          )}
+          <div className="empty-cta-row">
+            {hasActiveFilter ? (
+              <button type="button" className="btn-secondary" onClick={resetFilters}>
+                Atur ulang filter
+              </button>
+            ) : isAdmin ? (
+              <button type="button" className="btn-primary" onClick={openCreateMenu}>
+                Tambah menu
+              </button>
+            ) : null}
+          </div>
         </div>
       )}
 
@@ -525,13 +532,11 @@ export default function MenuPage() {
 
       {/* Modal Tambah / Ubah Menu */}
       {menuModal && (
-        <div
-          className="modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="menu-modal-title"
+        <Modal
+          titleId="menu-modal-title"
+          panelClassName="modal-panel modal-wide"
+          onClose={() => setMenuModal(null)}
         >
-          <div className="modal-panel modal-wide">
             <h2 id="menu-modal-title">
               {menuModal.mode === 'create'
                 ? 'Tambah menu baru'
@@ -690,19 +695,15 @@ export default function MenuPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Konfirmasi Harga Pokok > Harga Jual */}
       {highCostConfirmPayload && (
-        <div
-          className="modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="high-cost-title"
+        <Modal
+          titleId="high-cost-title"
+          onClose={() => setHighCostConfirmPayload(null)}
         >
-          <div className="modal-panel">
             <h2 id="high-cost-title">Konfirmasi harga pokok lebih tinggi</h2>
             <p className="confirm-text">
               Harga pokok ({formatRp(highCostConfirmPayload.harga_pokok)}) lebih besar
@@ -726,19 +727,16 @@ export default function MenuPage() {
                 Ya, tetap simpan
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Modal Penyesuaian Stok */}
       {stokModal && (
-        <div
-          className="modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="stok-modal-title"
+        <Modal
+          titleId="stok-modal-title"
+          panelClassName="modal-panel modal-wide"
+          onClose={() => setStokModal(null)}
         >
-          <div className="modal-panel modal-wide">
             <h2 id="stok-modal-title">Sesuaikan stok: {stokModal.nama_produk}</h2>
             <p className="stok-current-info">
               Stok saat ini:{' '}
@@ -839,19 +837,15 @@ export default function MenuPage() {
                 </ul>
               </div>
             )}
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Modal Konfirmasi Nonaktifkan / Hapus Menu */}
       {deactivateTarget && (
-        <div
-          className="modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="deact-menu-title"
+        <Modal
+          titleId="deact-menu-title"
+          onClose={() => setDeactivateTarget(null)}
         >
-          <div className="modal-panel">
             <h2 id="deact-menu-title">
               {deactivateTarget.pernah_dipesan
                 ? 'Nonaktifkan menu?'
@@ -898,19 +892,16 @@ export default function MenuPage() {
                 Nonaktifkan saja
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Modal Kelola Kategori */}
       {catModalOpen && (
-        <div
-          className="modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cat-modal-title"
+        <Modal
+          titleId="cat-modal-title"
+          panelClassName="modal-panel modal-wide"
+          onClose={() => setCatModalOpen(false)}
         >
-          <div className="modal-panel modal-wide">
             <h2 id="cat-modal-title">Kelola kategori menu</h2>
 
             <form onSubmit={handleCreateCategory} className="cat-add-form">
@@ -1015,8 +1006,7 @@ export default function MenuPage() {
                 Tutup
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

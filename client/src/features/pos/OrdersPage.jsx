@@ -5,6 +5,7 @@ import { api } from '../../api/client.js';
 import { useOrders, useUpdateOrderStatus } from '../../api/hooks.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../../components/ui/ToastContext.jsx';
+import { Modal } from '../../components/ui/Modal.jsx';
 import ReceiptModal from '../receipt/ReceiptModal.jsx';
 import './orders.css';
 
@@ -169,19 +170,25 @@ export default function OrdersPage() {
               ? 'Tidak ada pesanan yang cocok dengan filter.'
               : 'Belum ada pesanan tercatat. Buat pesanan pertama.'}
           </p>
-          {(statusFilter !== 'all' || search.trim()) && (
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => {
-                setStatusFilter('all');
-                setSearch('');
-                setPage(1);
-              }}
-            >
-              Reset filter
-            </button>
-          )}
+          <div className="empty-cta-row">
+            {(statusFilter !== 'all' || search.trim()) ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setStatusFilter('all');
+                  setSearch('');
+                  setPage(1);
+                }}
+              >
+                Atur ulang filter
+              </button>
+            ) : (
+              <Link to="/transaksi" className="btn-primary link-btn">
+                Buat pesanan baru
+              </Link>
+            )}
+          </div>
         </div>
       )}
 
@@ -205,30 +212,30 @@ export default function OrdersPage() {
               <tbody>
                 {orders.map((o) => (
                   <tr key={o.id}>
-                    <td>
+                    <td data-label="No. faktur">
                       <code className="code-badge">{o.invoice_number}</code>
                       {o.nama_pemesan && (
                         <div className="pemesan-sub">{o.nama_pemesan}</div>
                       )}
                     </td>
-                    <td className="tabular-nums">{formatDateTime(o.created_at)}</td>
-                    {isAdmin && <td>{o.kasir_nama}</td>}
-                    <td>
+                    <td data-label="Waktu" className="tabular-nums">{formatDateTime(o.created_at)}</td>
+                    {isAdmin && <td data-label="Kasir">{o.kasir_nama}</td>}
+                    <td data-label="Layanan">
                       {o.tipe_pesanan === 'dine_in'
                         ? `Dine-In • Meja ${o.nomor_meja}`
                         : 'Takeaway'}
                     </td>
-                    <td className="num-col tabular-nums">{o.total_item}</td>
-                    <td className="num-col tabular-nums">
+                    <td data-label="Item" className="num-col tabular-nums">{o.total_item}</td>
+                    <td data-label="Grand total" className="num-col tabular-nums">
                       <strong>{formatRp(o.grand_total)}</strong>
                     </td>
-                    <td className="method-cell">{o.metode_bayar.toUpperCase()}</td>
-                    <td>
+                    <td data-label="Metode" className="method-cell">{o.metode_bayar.toUpperCase()}</td>
+                    <td data-label="Status">
                       <span className={`order-status-pill status-${o.status}`}>
                         {STATUS_LABEL[o.status] || o.status}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Aksi">
                       <div className="action-group">
                         <button
                           type="button"
@@ -296,39 +303,35 @@ export default function OrdersPage() {
 
       {/* Cancel confirmation modal */}
       {cancelTarget && (
-        <div
-          className="modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cancel-order-title"
+        <Modal
+          titleId="cancel-order-title"
+          onClose={() => setCancelTarget(null)}
         >
-          <div className="modal-panel">
-            <h2 id="cancel-order-title">Batalkan pesanan?</h2>
-            <p className="confirm-text">
-              Pesanan <strong>{cancelTarget.invoice_number}</strong> senilai{' '}
-              <strong>{formatRp(cancelTarget.grand_total)}</strong> akan dibatalkan, stok
-              item akan dikembalikan ke inventaris, dan nominal tidak dihitung ke omset.
-              Aksi ini tidak dapat dibatalkan kembali.
-            </p>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setCancelTarget(null)}
-              >
-                Kembali
-              </button>
-              <button
-                type="button"
-                className="btn-danger"
-                onClick={handleConfirmCancel}
-                disabled={updateStatusMutation.isPending}
-              >
-                {updateStatusMutation.isPending ? 'Membatalkan...' : 'Ya, batalkan pesanan'}
-              </button>
-            </div>
+          <h2 id="cancel-order-title">Batalkan pesanan?</h2>
+          <p className="confirm-text">
+            Pesanan <strong>{cancelTarget.invoice_number}</strong> senilai{' '}
+            <strong>{formatRp(cancelTarget.grand_total)}</strong> akan dibatalkan, stok
+            item akan dikembalikan ke inventaris, dan nominal tidak dihitung ke omset.
+            Aksi ini tidak dapat dibatalkan kembali.
+          </p>
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setCancelTarget(null)}
+            >
+              Kembali
+            </button>
+            <button
+              type="button"
+              className="btn-danger"
+              onClick={handleConfirmCancel}
+              disabled={updateStatusMutation.isPending}
+            >
+              {updateStatusMutation.isPending ? 'Membatalkan...' : 'Ya, batalkan pesanan'}
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {receiptOrder && (

@@ -1,5 +1,6 @@
 // src/features/receipt/ReceiptModal.jsx
 import { useState } from 'react';
+import { Modal } from '../../components/ui/Modal.jsx';
 import './receipt.css';
 
 function formatRp(n) {
@@ -34,13 +35,13 @@ export default function ReceiptModal({ order, onClose, onNewOrder, isNewOrder = 
   };
 
   return (
-    <div
-      className="receipt-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="receipt-dialog-title"
+    <Modal
+      titleId="receipt-dialog-title"
+      onClose={onClose}
+      backdropClassName="receipt-modal-backdrop"
+      panelClassName="receipt-modal-shell"
+      closeOnBackdrop
     >
-      <div className="receipt-modal-shell">
         <div className="receipt-toolbar no-print">
           <div>
             <h2 id="receipt-dialog-title">Struk transaksi</h2>
@@ -184,7 +185,6 @@ export default function ReceiptModal({ order, onClose, onNewOrder, isNewOrder = 
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

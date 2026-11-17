@@ -1,5 +1,5 @@
 // src/features/pos/POSPage.jsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   useCategories,
   useProducts,
@@ -52,6 +52,19 @@ export default function POSPage() {
 
   // Mobile ticket drawer toggle
   const [mobileTicketOpen, setMobileTicketOpen] = useState(false);
+  const mobileToggleBtnRef = useRef(null);
+
+  useEffect(() => {
+    if (!mobileTicketOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMobileTicketOpen(false);
+        mobileToggleBtnRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [mobileTicketOpen]);
 
   // Queries & Mutations
   const { data: catData } = useCategories();
@@ -400,8 +413,10 @@ export default function POSPage() {
       {/* Mobile bottom bar to toggle ticket */}
       <div className="mobile-ticket-bar">
         <button
+          ref={mobileToggleBtnRef}
           type="button"
           className="btn-primary mobile-ticket-toggle"
+          aria-expanded={mobileTicketOpen}
           onClick={() => setMobileTicketOpen((v) => !v)}
         >
           <span>

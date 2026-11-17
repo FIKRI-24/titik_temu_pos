@@ -8,10 +8,10 @@ export function ProtectedRoute({ children, requireAdmin = false }) {
 
   if (isLoading) {
     return (
-      <div className="loading-screen">
+      <main className="loading-screen" role="status" aria-live="polite">
         <div className="loading-spinner" />
         <p>Memeriksa sesi...</p>
-      </div>
+      </main>
     );
   }
 
@@ -21,11 +21,11 @@ export function ProtectedRoute({ children, requireAdmin = false }) {
 
   if (requireAdmin && !isAdmin) {
     return (
-      <div className="forbidden-screen" role="alert">
+      <div className="forbidden-screen forbidden-inline" role="alert" aria-labelledby="forbidden-title">
         <div className="forbidden-content">
           <p className="forbidden-code">403</p>
-          <h2>Tidak punya akses</h2>
-          <p>Halaman ini hanya tersedia untuk administrator.</p>
+          <h1 id="forbidden-title">Tidak punya akses</h1>
+          <p className="page-subtitle">Halaman ini hanya tersedia untuk administrator.</p>
           <Link to="/dashboard" className="forbidden-link">
             Kembali ke dashboard
           </Link>

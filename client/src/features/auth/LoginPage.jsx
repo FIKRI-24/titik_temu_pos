@@ -15,10 +15,15 @@ export default function LoginPage() {
   const location = useLocation();
   const loginMutation = useLogin();
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const fromState = location.state?.from;
+  const from =
+    fromState?.pathname && fromState.pathname !== '/login'
+      ? `${fromState.pathname}${fromState.search || ''}`
+      : '/dashboard';
+  const sessionExpired = Boolean(location.state?.sessionExpired);
 
   if (!isLoading && isAuthenticated) {
-    return <Navigate to={from === '/login' ? '/dashboard' : from} replace />;
+    return <Navigate to={from} replace />;
   }
 
   const handleSubmit = async (e) => {
@@ -32,20 +37,26 @@ export default function LoginPage() {
 
     try {
       await loginMutation.mutateAsync({ username: username.trim(), password });
-      navigate(from === '/login' ? '/dashboard' : from, { replace: true });
+      navigate(from, { replace: true });
     } catch (err) {
       setErrorMessage(err.message || 'Username atau password tidak sesuai.');
     }
   };
 
   return (
-    <div className="login-wrapper">
+    <main className="login-wrapper">
       <div className="login-card">
         <div className="login-header">
           <div className="login-badge">Titik Temu Kopi</div>
           <h1 className="login-title">Masuk ke sistem kasir</h1>
           <p className="login-desc">Gunakan akun kasir atau administrator Anda</p>
         </div>
+
+        {sessionExpired && !errorMessage && (
+          <div className="login-alert-warning" role="status">
+            <span>Sesi Anda telah berakhir. Silakan login kembali untuk melanjutkan.</span>
+          </div>
+        )}
 
         {errorMessage && (
           <div className="login-alert-error" role="alert">
@@ -104,6 +115,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

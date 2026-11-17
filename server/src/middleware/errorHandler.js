@@ -1,10 +1,11 @@
 // src/middleware/errorHandler.js
 export function errorHandler(err, req, res, _next) {
   const status = err.status || err.statusCode || 500;
-  const message = status === 500 ? 'Terjadi kesalahan pada server.' : err.message;
+  const isServerError = status >= 500;
+  const message = isServerError ? 'Terjadi kesalahan pada server.' : err.message;
 
-  // Log server errors (not to console.log)
-  if (status >= 500) {
+  // Log server errors (never to console.log; hidden from client responses)
+  if (isServerError) {
     process.stderr.write(`[ERROR] ${req.method} ${req.url}: ${err.message}\n${err.stack}\n`);
   }
 
@@ -13,7 +14,7 @@ export function errorHandler(err, req, res, _next) {
     data: null,
     error: {
       message,
-      ...(err.code ? { code: err.code } : {}),
+      ...(!isServerError && err.code ? { code: err.code } : {}),
     },
   });
 }

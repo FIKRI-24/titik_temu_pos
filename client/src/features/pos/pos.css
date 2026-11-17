@@ -530,7 +530,11 @@
 @media (max-width: 960px) {
   .pos-workspace {
     grid-template-columns: 1fr;
-    padding-bottom: 72px;
+    padding-bottom: 84px;
+  }
+
+  .pos-search input {
+    min-height: 44px;
   }
 
   .pos-menu-card.featured {

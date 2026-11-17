@@ -674,8 +674,17 @@ export default function ReportsPage() {
         {ordersLoading ? (
           <div className="reports-empty-box">Memuat rincian transaksi...</div>
         ) : orders.length === 0 ? (
-          <div className="reports-empty-box" data-testid="reports-empty-state">
-            Belum ada transaksi pada periode ini
+          <div className="reports-empty-box">
+            <p data-testid="reports-empty-state">Belum ada transaksi pada periode ini</p>
+            <div className="empty-cta-row" style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleResetFilters}
+              >
+                Atur ulang filter
+              </button>
+            </div>
           </div>
         ) : (
           <div className="reports-table-wrap">

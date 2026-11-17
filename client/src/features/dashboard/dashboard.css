@@ -119,9 +119,15 @@
 .chart-container {
   position: relative;
   width: 100%;
+  max-width: 100%;
   min-height: 220px;
   overflow: hidden;
   overflow: clip;
+}
+
+.chart-container .recharts-wrapper,
+.chart-container svg {
+  max-width: 100%;
 }
 
 .chart-placeholder {
@@ -381,5 +387,16 @@
     font-weight: 600;
     color: var(--color-gray-600);
     text-align: left;
+  }
+
+  .kpi-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .low-stock-link {
+    min-height: 44px;
+    align-items: center;
   }
 }

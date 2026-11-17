@@ -77,7 +77,7 @@ PGPASSWORD="password_postgres_anda" psql -U postgres -d titik_temu_pos -v ON_ERR
 
   # Jalankan dari folder server/ terhadap database uji terisolasi titik_temu_pos_test
   cd ../..
-  node tests/e2e/run_e2e.mjs tests/e2e/verify_fase1.mjs tests/e2e/verify_fase2.mjs tests/e2e/verify_fase3.mjs tests/e2e/verify_fase4.mjs tests/e2e/verify_fase5.mjs
+  node tests/e2e/run_e2e.mjs tests/e2e/verify_fase1.mjs tests/e2e/verify_fase2.mjs tests/e2e/verify_fase3.mjs tests/e2e/verify_fase4.mjs tests/e2e/verify_fase5.mjs tests/e2e/verify_fase6.mjs
   ```
   *(Variabel opsional: `CHROME_PATH` jika lokasi Chrome berbeda.)*
 
@@ -122,4 +122,19 @@ Dashboard menjumlahkan `orders.grand_total` dan kini berlabel **"Total diterima 
 - **Keamanan & format**: karakter pembuka rumus spreadsheet (`=`, `+`, `-`, `@`, tab, CR) pada kolom teks diawali kutip tunggal (`'`), seluruh nominal ditulis sebagai angka bulat mentah rupiah, dan nama berkas pada header `Content-Disposition` disanitasi ketat (`[A-Za-z0-9._-]`).
 - Rate limit login: maksimal **10 percobaan gagal per 15 menit per IP** (`skipSuccessfulRequests: true`).
 - Panjang password minimal **8 karakter** untuk pembuatan akun baru dan reset password.
-- Cookie JWT memakai `httpOnly: true`, `sameSite: 'lax'`, serta otomatis `secure: true` saat `NODE_ENV=production`. Origin CORS dibaca dari `CLIENT_ORIGIN`.
+- Cookie JWT memakai `httpOnly: true`, `sameSite: 'lax'`, serta otomatis `secure: true` saat `NODE_ENV=production`. Origin CORS dibaca dari `CLIENT_ORIGIN` dan dilarang `*` pada produksi.
+- Saat `NODE_ENV=production`, server menolak menyala bila `JWT_SECRET` kosong, kurang dari 32 karakter, berpola berulang, atau masih berisi placeholder, dan handler error 500 menyembunyikan kode error PG, pesan SQL, serta stack trace dari respons klien.
+
+## Tangkapan Layar Antarmuka
+
+| Login | Dashboard |
+| :---: | :---: |
+| ![Halaman Login](docs/screenshots/login.png) | ![Dashboard Admin](docs/screenshots/dashboard.png) |
+
+| Layar Kasir | Struk Termal |
+| :---: | :---: |
+| ![Kasir Pemesanan](docs/screenshots/kasir.png) | ![Preview Struk](docs/screenshots/struk.png) |
+
+| Laporan Penjualan |
+| :---: |
+| ![Laporan Penjualan](docs/screenshots/laporan.png) |
