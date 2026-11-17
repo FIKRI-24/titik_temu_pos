@@ -169,44 +169,67 @@ export default function DashboardPage() {
           ) : trend.length === 0 ? (
             <div className="chart-placeholder">Belum ada data tren.</div>
           ) : (
-            <div className="chart-container" role="img" aria-label="Grafik batang tren omset 7 hari terakhir">
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart
-                  data={trend}
-                  margin={{ top: 22, right: 12, left: 4, bottom: 4 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2EAE6" />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 12, fill: '#2F4E44' }}
-                    axisLine={{ stroke: '#C5D5CC' }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tickFormatter={formatCompactRp}
-                    tick={{ fontSize: 11, fill: '#4E7066' }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={46}
-                  />
-                  <Tooltip content={<TrendTooltip />} cursor={{ fill: '#EEF3F1' }} />
-                  <Bar
-                    dataKey="omset"
-                    name="Omset"
-                    fill="#0E6B5C"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={44}
+            <>
+              <div className="chart-container" aria-hidden="true">
+                <ResponsiveContainer width="100%" height={220} minWidth={0}>
+                  <BarChart
+                    data={trend}
+                    margin={{ top: 22, right: 12, left: 4, bottom: 4 }}
                   >
-                    <LabelList
-                      dataKey="omset"
-                      position="top"
-                      formatter={formatCompactRp}
-                      style={{ fontSize: 11, fill: '#16241F', fontWeight: 600 }}
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2EAE6" />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 12, fill: '#2F4E44' }}
+                      axisLine={{ stroke: '#C5D5CC' }}
+                      tickLine={false}
                     />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+                    <YAxis
+                      tickFormatter={formatCompactRp}
+                      tick={{ fontSize: 11, fill: '#2F4E44' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={46}
+                    />
+                    <Tooltip content={<TrendTooltip />} cursor={{ fill: '#EEF3F1' }} />
+                    <Bar
+                      dataKey="omset"
+                      name="Omset"
+                      fill="#0E6B5C"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={44}
+                    >
+                      <LabelList
+                        dataKey="omset"
+                        position="top"
+                        formatter={formatCompactRp}
+                        style={{ fontSize: 11, fill: '#16241F', fontWeight: 600 }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="sr-only">
+                <table aria-label="Ringkasan data tren omset 7 hari terakhir">
+                  <caption>Tren omset dan jumlah pesanan 7 hari terakhir</caption>
+                  <thead>
+                    <tr>
+                      <th>Tanggal</th>
+                      <th>Jumlah pesanan</th>
+                      <th>Omset</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trend.map((item) => (
+                      <tr key={item.tanggal}>
+                        <td>{item.label}</td>
+                        <td>{item.jumlah_pesanan}</td>
+                        <td>{formatRp(item.omset)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </section>

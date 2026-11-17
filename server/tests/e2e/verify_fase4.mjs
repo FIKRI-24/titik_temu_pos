@@ -80,11 +80,18 @@ async function run() {
       { width: 360, height: 780 },
     ]) {
       await page.setViewport(vp);
-      await new Promise((r) => setTimeout(r, 200));
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth > window.innerWidth + 2
-      );
-      assert.equal(overflow, false, `Horizontal overflow detected at ${vp.width}px`);
+      await new Promise((r) => setTimeout(r, 400));
+      const overflowInfo = await page.evaluate(() => {
+        const sw = document.documentElement.scrollWidth;
+        const iw = window.innerWidth;
+        if (sw <= iw + 2) return null;
+        const offenders = Array.from(document.querySelectorAll('*'))
+          .filter((el) => el.getBoundingClientRect().right > iw + 2)
+          .slice(0, 5)
+          .map((el) => `${el.tagName}.${el.className} (right=${Math.round(el.getBoundingClientRect().right)})`);
+        return { sw, iw, offenders };
+      });
+      assert.equal(overflowInfo, null, `Horizontal overflow at ${vp.width}px: ${JSON.stringify(overflowInfo)}`);
     }
     await page.setViewport({ width: 1440, height: 900 });
     process.stdout.write('PASS 2: Dashboard layout responsive without overflow at 360, 768, and 1440 px\n');

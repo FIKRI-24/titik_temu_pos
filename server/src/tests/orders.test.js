@@ -226,14 +226,14 @@ describe('Transaksi Atomik, Idempotensi, Gapless Invoice, Rollback, & Edge Case 
     expect(seq2).toBe(seq1 + 1);
   });
 
-  it('Idempotency-Key mencegah pesanan ganda saat dua request identik dikirim bersamaan', async () => {
+  it('Idempotency-Key: (a) key sama mengembalikan pesanan sama, (b) beda kasir terisolasi, (c) key sama payload beda ditolak 409', async () => {
     const p = await createProduct({
       category_id: 1,
       kode_produk: `IDEM-${Date.now()}`,
       nama_produk: 'Menu Uji Idempotensi',
       harga_jual: 30000,
       harga_pokok: 12000,
-      stok: 10,
+      stok: 20,
       stok_minimum: 2,
       unit: 'cup',
       konfirmasi_harga_pokok_tinggi: false,
@@ -241,24 +241,47 @@ describe('Transaksi Atomik, Idempotensi, Gapless Invoice, Rollback, & Edge Case 
     createdProductIds.push(p.id);
 
     const idemKey = `idem-test-${Date.now()}`;
-    const payload = {
+    const payloadA = {
       tipe_pesanan: 'takeaway',
       items: [{ product_id: p.id, kuantiti: 2 }],
       metode_bayar: 'qris',
     };
 
+    // (a) Concurrent identical requests from same user -> same order, stock deducted once
     const [res1, res2] = await Promise.all([
-      createOrder(2, payload, { idempotencyKey: idemKey }),
-      createOrder(2, payload, { idempotencyKey: idemKey }),
+      createOrder(2, payloadA, { idempotencyKey: idemKey }),
+      createOrder(2, payloadA, { idempotencyKey: idemKey }),
     ]);
 
     expect(res1.id).toBe(res2.id);
     expect(res1.invoice_number).toBe(res2.invoice_number);
     createdOrderIds.push(res1.id);
 
-    // Stock deducted ONCE (10 - 2 = 8), NOT twice!
+    // (b) Same Idempotency-Key used by another user (admin user_id=1) -> creates separate order, no leak!
+    const otherUserOrder = await createOrder(1, payloadA, { idempotencyKey: idemKey });
+    expect(otherUserOrder.id).not.toBe(res1.id);
+    expect(otherUserOrder.user_id).toBe(1);
+    createdOrderIds.push(otherUserOrder.id);
+
+    // (c) Same user + same Idempotency-Key + DIFFERENT payload -> rejected 409 with clear message
+    await expect(
+      createOrder(
+        2,
+        {
+          tipe_pesanan: 'takeaway',
+          items: [{ product_id: p.id, kuantiti: 5 }],
+          metode_bayar: 'qris',
+        },
+        { idempotencyKey: idemKey }
+      )
+    ).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining('payload pesanan yang berbeda'),
+    });
+
+    // Stock deducted once for kasir (2) + once for admin (2) = 20 - 4 = 16
     const stokRes = await pool.query(`SELECT stok FROM products WHERE id = $1`, [p.id]);
-    expect(stokRes.rows[0].stok).toBe(8);
+    expect(stokRes.rows[0].stok).toBe(16);
   });
 
   it('server selalu menghitung dengan harga menu terbaru walau harga berubah sebelum simpan', async () => {

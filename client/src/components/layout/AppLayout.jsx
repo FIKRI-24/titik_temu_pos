@@ -1,5 +1,5 @@
 // src/components/layout/AppLayout.jsx
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext.jsx';
 import './layout.css';
@@ -127,7 +127,15 @@ export function AppLayout() {
       </aside>
 
       <main className="app-main">
-        <Outlet />
+        <Suspense
+          fallback={
+            <div className="state-box" role="status" aria-live="polite">
+              <p>Memuat halaman...</p>
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

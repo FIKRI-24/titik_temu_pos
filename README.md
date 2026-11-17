@@ -67,12 +67,17 @@ PGPASSWORD="password_postgres_anda" psql -U postgres -d titik_temu_pos -v ON_ERR
   cd server
   npm test
   ```
-  Jest secara otomatis membuat database sementara `titik_temu_pos_test`, menjalankan migrasi + seeder, mengeksekusi seluruh suite pengujian, lalu menghapus `titik_temu_pos_test` kembali sehingga database pengembangan (`titik_temu_pos`) tidak terpengaruh.
-- **Uji End-to-End Terisolasi (Headless Chrome via `puppeteer-core`)**:
-  Menjalankan skrip E2E terhadap database uji terisolasi `titik_temu_pos_test` dan server uji terpisah (port `3005` & `5175`):
+  Jest berjalan secara sekuensial (`--runInBand`) pada database sementara `titik_temu_pos_test` yang dibuat, di-seed, dan dihapus otomatis setelah selesai sehingga database pengembangan (`titik_temu_pos`) tetap bersih.
+- **Uji End-to-End Terisolasi (Paket terpisah `server/tests/e2e`)**:
+  `puppeteer-core` dipisahkan ke `server/tests/e2e/package.json` agar `npm install` di `server/` tidak mengunduh dependensi browser. Untuk instalasi biasa tanpa mengunduh Chromium, gunakan `PUPPETEER_SKIP_DOWNLOAD=1`:
   ```bash
-  cd server
-  node tests/e2e/run_e2e.mjs tests/e2e/verify_fase1.mjs tests/e2e/verify_fase2.mjs tests/e2e/verify_fase3.mjs
+  # Instalasi awal paket E2E (gunakan PUPPETEER_SKIP_DOWNLOAD=1)
+  cd server/tests/e2e
+  PUPPETEER_SKIP_DOWNLOAD=1 npm install
+
+  # Jalankan dari folder server/ terhadap database uji terisolasi titik_temu_pos_test
+  cd ../..
+  node tests/e2e/run_e2e.mjs tests/e2e/verify_fase1.mjs tests/e2e/verify_fase2.mjs tests/e2e/verify_fase3.mjs tests/e2e/verify_fase4.mjs
   ```
   *(Variabel opsional: `CHROME_PATH` jika lokasi Chrome berbeda.)*
 
@@ -82,13 +87,16 @@ PGPASSWORD="password_postgres_anda" psql -U postgres -d titik_temu_pos -v ON_ERR
 | **Admin** | `admin` | `Admin#2026` |
 | **Kasir** | `kasir1` | `Kasir#2026` |
 
-## Asumsi Bisnis & Keamanan
-- Zona waktu operasional menggunakan `Asia/Jakarta` untuk perhitungan "hari ini" dan penomoran faktur (`INV-POS-YYYYMMDD-XXXX`).
+## Definisi KPI Dashboard & Aturan Bisnis
+- Zona waktu operasional menggunakan `Asia/Jakarta` untuk batas hari ("hari ini") dan penomoran faktur (`INV-POS-YYYYMMDD-XXXX`).
 - Semua nominal uang disimpan sebagai integer rupiah (`INTEGER`) tanpa floating point.
-- Pajak PB1 sebesar 10% dihitung dari `(subtotal - diskon)`, dibulatkan ke rupiah terdekat.
-- Omset dan jumlah pesanan hari ini menghitung pesanan berstatus `diproses` dan `selesai` (tidak termasuk `dibatalkan`).
-- **Menu terlaris hari ini**: dihitung berdasarkan total kuantitas terjual terbanyak pada hari berjalan (zona `Asia/Jakarta`). Jika terdapat dua atau lebih menu dengan total kuantitas sama (seri), pemenang ditentukan secara alfabetis berdasarkan nama produk (`ORDER BY total_qty DESC, nama_produk ASC`).
-- **Distribusi penjualan kategori (dashboard)**: menghitung subtotal baris item (`order_details.subtotal_baris`) dari pesanan non-batal pada periode 7 hari terakhir agar mencerminkan kontribusi per kategori.
-- Rate limit login: maksimal **10 percobaan gagal per 15 menit per IP** (`skipSuccessfulRequests: true`), sehingga login yang berhasil tidak menghabiskan kuota batas percobaan.
+- Pajak PB1 sebesar 10% dihitung dari `(subtotal - diskon)`, dibulatkan ke rupiah terdekat (`Math.round`).
+- **Definisi KPI Dashboard**:
+  - `total_omset` & `jumlah_pesanan`: menghitung seluruh pesanan berstatus `diproses` dan `selesai` pada tanggal hari ini (`Asia/Jakarta`), mengecualikan `dibatalkan`, berdasarkan `grand_total` (total yang diterima).
+  - `menu_terlaris`: dihitung berdasarkan total kuantitas terjual terbanyak hari ini (`SUM(kuantiti)`). Aturan seri (jika qty sama): dipilih secara alfabetis (`ORDER BY total_qty DESC, nama_produk ASC`).
+  - `stok_rendah`: daftar menu `aktif` dengan `stok <= stok_minimum`.
+  - `tren 7 hari`: memakai `generate_series` pada zona `Asia/Jakarta` dari 6 hari lalu hingga hari ini (hari tanpa transaksi tetap muncul bernilai `0`).
+  - **Distribusi penjualan kategori (dashboard)**: menghitung `SUM(order_details.subtotal_baris)` dari pesanan non-batal pada periode 7 hari terakhir.
+- Rate limit login: maksimal **10 percobaan gagal per 15 menit per IP** (`skipSuccessfulRequests: true`).
 - Panjang password minimal **8 karakter** untuk pembuatan akun baru dan reset password.
-- Cookie JWT memakai `httpOnly: true`, `sameSite: 'lax'`, serta otomatis `secure: true` saat `NODE_ENV=production`. Origin CORS dibaca dari variabel environment `CLIENT_ORIGIN`.
+- Cookie JWT memakai `httpOnly: true`, `sameSite: 'lax'`, serta otomatis `secure: true` saat `NODE_ENV=production`. Origin CORS dibaca dari `CLIENT_ORIGIN`.

@@ -1,4 +1,5 @@
 // src/modules/orders/orders.service.js
+import crypto from 'crypto';
 import { pool } from '../../config/db.js';
 import {
   calculateDiscount,
@@ -7,6 +8,23 @@ import {
   formatRupiah,
 } from '../../utils/money.js';
 import { generateInvoiceNumber } from '../../utils/invoice.js';
+
+function buildRequestHash(data) {
+  const canonical = {
+    tipe_pesanan: data.tipe_pesanan,
+    nomor_meja: data.tipe_pesanan === 'dine_in' ? data.nomor_meja : null,
+    nama_pemesan: data.nama_pemesan?.trim() || null,
+    voucher_kode: data.voucher_kode?.trim()?.toUpperCase() || null,
+    metode_bayar: data.metode_bayar,
+    uang_dibayar: data.metode_bayar === 'tunai' ? (data.uang_dibayar ?? null) : null,
+    items: (data.items || []).map((i) => ({
+      product_id: i.product_id,
+      kuantiti: i.kuantiti,
+      catatan_khusus: i.catatan_khusus?.trim() || null,
+    })),
+  };
+  return crypto.createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+}
 
 /**
  * Pure server-side order total calculator.
@@ -50,6 +68,7 @@ export async function createOrder(userId, data, deps = {}) {
   const dbPool = deps.pool || pool;
   const rawIdemKey = deps.idempotencyKey ? String(deps.idempotencyKey).trim() : null;
   const scopedIdemKey = rawIdemKey ? `${userId}:${rawIdemKey.slice(0, 80)}` : null;
+  const requestHash = scopedIdemKey ? buildRequestHash(data) : null;
   const client = await dbPool.connect();
 
   try {
@@ -59,12 +78,20 @@ export async function createOrder(userId, data, deps = {}) {
     if (scopedIdemKey) {
       await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [scopedIdemKey]);
       const existingOrderRes = await client.query(
-        `SELECT id FROM orders WHERE idempotency_key = $1`,
+        `SELECT id, request_hash FROM orders WHERE idempotency_key = $1`,
         [scopedIdemKey]
       );
       if (existingOrderRes.rows.length > 0) {
+        const existing = existingOrderRes.rows[0];
+        if (existing.request_hash && existing.request_hash !== requestHash) {
+          const err = new Error(
+            'Idempotency-Key sudah digunakan untuk payload pesanan yang berbeda. Gunakan kunci baru untuk pesanan baru.'
+          );
+          err.status = 409;
+          throw err;
+        }
         await client.query('ROLLBACK');
-        return getOrderById(existingOrderRes.rows[0].id, userId, 'admin', dbPool);
+        return getOrderById(existing.id, userId, 'admin', dbPool);
       }
     }
 
@@ -175,15 +202,16 @@ export async function createOrder(userId, data, deps = {}) {
     // Insert order header
     const orderRes = await client.query(
       `INSERT INTO orders (
-         invoice_number, idempotency_key, user_id, tipe_pesanan, nomor_meja, nama_pemesan,
+         invoice_number, idempotency_key, request_hash, user_id, tipe_pesanan, nomor_meja, nama_pemesan,
          total_subtotal, diskon_nominal, voucher_kode, pajak_nominal, grand_total,
          metode_bayar, uang_dibayar, uang_kembali, status
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'diproses')
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'diproses')
        RETURNING id`,
       [
         invoiceNumber,
         scopedIdemKey,
+        requestHash,
         userId,
         data.tipe_pesanan,
         nomorMeja,

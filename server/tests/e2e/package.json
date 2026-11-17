@@ -1,0 +1,12 @@
+{
+  "name": "titik-temu-pos-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Paket terpisah untuk uji End-to-End (Headless Chrome) Titik Temu POS",
+  "devDependencies": {
+    "dotenv": "^16.4.7",
+    "pg": "^8.13.3",
+    "puppeteer-core": "^25.17.0"
+  }
+}

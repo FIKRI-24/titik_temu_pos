@@ -86,6 +86,7 @@ async function run() {
       page.click('button[type="submit"]'),
     ]);
 
+    await page.waitForSelector('a[href="/menu"]');
     await page.click('a[href="/menu"]');
     await page.waitForSelector('.menu-table');
 

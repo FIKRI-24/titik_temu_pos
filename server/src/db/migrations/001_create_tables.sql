@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
   invoice_number VARCHAR(30) UNIQUE NOT NULL,
   idempotency_key VARCHAR(100) UNIQUE,
+  request_hash VARCHAR(64),
   user_id INTEGER NOT NULL REFERENCES users(id),
   tipe_pesanan VARCHAR(10) NOT NULL CHECK (tipe_pesanan IN ('dine_in', 'takeaway')),
   nomor_meja INTEGER CHECK (
