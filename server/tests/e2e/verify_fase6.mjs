@@ -168,12 +168,12 @@ async function run() {
 
     // Delete httpOnly cookie via CDP
     const cdp = await page.createCDPSession();
-    await cdp.send('Network.deleteCookies', { name: 'token', url: BASE_URL });
+    await cdp.send('Network.clearBrowserCookies');
 
-    // Trigger query on /laporan -> server returns 401 -> redirects to /login with expired notice
+    // Trigger an uncached query on /laporan -> server returns 401 -> redirects to /login with expired notice
     await Promise.all([
       page.waitForFunction(() => window.location.pathname === '/login'),
-      page.click('[data-testid="btn-reset-filter"]'),
+      page.select('#filter-category', 'coffee'),
     ]);
     await page.waitForSelector('.login-alert-warning');
     const expiredText = await page.$eval('.login-alert-warning', (el) => el.innerText);
@@ -193,10 +193,12 @@ async function run() {
     await page.goto(`${BASE_URL}/menu`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('.menu-table tbody tr');
     await page.setOfflineMode(true);
-    // Force a fresh uncached query by toggling status filter ('true' has 16 active items)
-    await page.select('#aktif-filter', 'true');
+    // Enter an uncached search term so TanStack Query executes a real fetch and triggers offline error
+    await page.type('#menu-search', 'Espresso');
     await page.waitForFunction(
-      () => document.querySelector('.state-error')?.innerText.includes('Coba lagi') || document.querySelector('.state-error')?.innerText.includes('koneksi') || document.querySelector('.state-error') !== null
+      () =>
+        document.querySelector('.state-error')?.innerText.includes('Coba lagi') ||
+        document.querySelector('.state-error') !== null
     );
     const offlineBanner = await page.$eval('.state-error', (el) => el.innerText);
     assert.ok(offlineBanner.length > 0);

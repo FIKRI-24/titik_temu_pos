@@ -1,5 +1,5 @@
 // src/features/auth/AuthContext.jsx
-import { createContext, useContext, useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMe, useLogout } from '../../api/hooks.js';
@@ -22,6 +22,11 @@ export function AuthProvider({ children }) {
   const wasAuthenticatedRef = useRef(false);
   const locationRef = useRef(location);
   locationRef.current = location;
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState('');
+
+  const clearSessionExpiredMessage = useCallback(() => {
+    setSessionExpiredMessage('');
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -43,13 +48,14 @@ export function AuthProvider({ children }) {
               search: locationRef.current.search,
             };
 
-      queryClient.setQueryData(['me'], null);
-      queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' });
+      setSessionExpiredMessage('Sesi Anda telah berakhir. Silakan login kembali untuk melanjutkan.');
       toast.warning('Sesi Anda telah berakhir. Silakan login kembali.');
       navigate('/login', {
         state: { from: returnTo, sessionExpired: true },
         replace: true,
       });
+      queryClient.setQueryData(['me'], null);
+      queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' });
     }
 
     window.addEventListener('app:session-expired', handleSessionExpired);
@@ -70,6 +76,7 @@ export function AuthProvider({ children }) {
 
   async function logout() {
     wasAuthenticatedRef.current = false;
+    setSessionExpiredMessage('');
     try {
       await logoutMutation.mutateAsync();
     } finally {
@@ -80,7 +87,17 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isAdmin, isLoading, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        isAdmin,
+        isLoading,
+        logout,
+        sessionExpiredMessage,
+        clearSessionExpiredMessage,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

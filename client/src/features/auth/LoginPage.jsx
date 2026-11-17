@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, sessionExpiredMessage, clearSessionExpiredMessage } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const loginMutation = useLogin();
@@ -20,7 +20,7 @@ export default function LoginPage() {
     fromState?.pathname && fromState.pathname !== '/login'
       ? `${fromState.pathname}${fromState.search || ''}`
       : '/dashboard';
-  const sessionExpired = Boolean(location.state?.sessionExpired);
+  const sessionExpired = Boolean(location.state?.sessionExpired || sessionExpiredMessage);
 
   if (!isLoading && isAuthenticated) {
     return <Navigate to={from} replace />;
@@ -37,6 +37,7 @@ export default function LoginPage() {
 
     try {
       await loginMutation.mutateAsync({ username: username.trim(), password });
+      clearSessionExpiredMessage();
       navigate(from, { replace: true });
     } catch (err) {
       setErrorMessage(err.message || 'Username atau password tidak sesuai.');

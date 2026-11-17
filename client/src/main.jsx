@@ -11,11 +11,17 @@ import './styles/components.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      networkMode: 'always',
+      retry: (failureCount, err) =>
+        err?.code !== 'NETWORK_ERROR' &&
+        err?.status !== 401 &&
+        err?.status !== 403 &&
+        failureCount < 1,
       staleTime: 30 * 1000,
       refetchOnWindowFocus: false,
     },
     mutations: {
+      networkMode: 'always',
       retry: 0,
     },
   },
