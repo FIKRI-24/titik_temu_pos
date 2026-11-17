@@ -128,10 +128,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Top Hero Row: Omset (large) + 7-day Trend Chart (wide) */}
-      <section className="dash-hero-grid" aria-label="KPI utama dan tren omset">
+      {/* Top Hero Row: Total diterima (large) + 7-day Trend Chart (wide) */}
+      <section className="dash-hero-grid" aria-label="KPI utama dan tren penerimaan">
         <div className="kpi-hero-card">
-          <span className="kpi-label">Omset hari ini</span>
+          <span className="kpi-label">Total diterima hari ini</span>
           {sumLoading ? (
             <div className="kpi-loading">Memuat...</div>
           ) : (
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                     selesai
                   </>
                 ) : (
-                  'Belum ada omset hari ini.'
+                  'Belum ada penerimaan hari ini.'
                 )}
               </p>
             </>
@@ -160,7 +160,7 @@ export default function DashboardPage() {
 
         <div className="trend-card">
           <div className="card-head-row">
-            <h2>Tren omset 7 hari terakhir</h2>
+            <h2>Tren total diterima 7 hari terakhir</h2>
             <span className="card-note">Diperbarui tiap 30 detik</span>
           </div>
 
@@ -193,7 +193,7 @@ export default function DashboardPage() {
                     <Tooltip content={<TrendTooltip />} cursor={{ fill: '#EEF3F1' }} />
                     <Bar
                       dataKey="omset"
-                      name="Omset"
+                      name="Total diterima"
                       fill="#0E6B5C"
                       radius={[4, 4, 0, 0]}
                       maxBarSize={44}
@@ -209,13 +209,13 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
               </div>
               <div className="sr-only">
-                <table aria-label="Ringkasan data tren omset 7 hari terakhir">
-                  <caption>Tren omset dan jumlah pesanan 7 hari terakhir</caption>
+                <table aria-label="Ringkasan data tren total diterima 7 hari terakhir">
+                  <caption>Tren total diterima dan jumlah pesanan 7 hari terakhir</caption>
                   <thead>
                     <tr>
                       <th>Tanggal</th>
                       <th>Jumlah pesanan</th>
-                      <th>Omset</th>
+                      <th>Total diterima</th>
                     </tr>
                   </thead>
                   <tbody>

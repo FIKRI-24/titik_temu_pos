@@ -93,6 +93,13 @@ export function AppLayout() {
               <div className="nav-divider" />
               <div className="nav-section-title">Administrasi</div>
               <NavLink
+                to="/laporan"
+                onClick={closeMenu}
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                <span>Laporan penjualan</span>
+              </NavLink>
+              <NavLink
                 to="/pengguna"
                 onClick={closeMenu}
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}

@@ -1,14 +1,15 @@
 /* src/components/ui/toast.css */
 .toast-container {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 10px;
   max-width: 380px;
-  width: calc(100vw - 40px);
+  width: calc(100vw - 32px);
   pointer-events: none;
 }
 

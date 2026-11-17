@@ -11,33 +11,13 @@ const POSPage = lazy(() => import('./features/pos/POSPage.jsx'));
 const OrdersPage = lazy(() => import('./features/pos/OrdersPage.jsx'));
 const MenuPage = lazy(() => import('./features/menu/MenuPage.jsx'));
 const UsersPage = lazy(() => import('./features/users/UsersPage.jsx'));
+const ReportsPage = lazy(() => import('./features/reports/ReportsPage.jsx'));
 
 function PageFallback() {
   return (
     <div className="loading-screen" role="status" aria-live="polite">
       <div className="loading-spinner" />
       <p>Memuat halaman...</p>
-    </div>
-  );
-}
-
-function ModulePendingNotice({ title, phase }) {
-  return (
-    <div
-      style={{
-        maxWidth: 680,
-        margin: '24px auto',
-        background: '#fff',
-        padding: 24,
-        borderRadius: 'var(--radius-card)',
-        border: '1px solid var(--color-gray-200)',
-      }}
-    >
-      <h1 style={{ fontSize: 22, marginBottom: 8 }}>{title}</h1>
-      <p style={{ color: 'var(--color-gray-600)' }}>
-        Halaman ini sudah terlindungi oleh otentikasi dan kontrol akses. Fitur lengkap akan
-        dikerjakan pada {phase}.
-      </p>
     </div>
   );
 }
@@ -73,7 +53,7 @@ export default function App() {
               path="laporan"
               element={
                 <ProtectedRoute requireAdmin>
-                  <ModulePendingNotice title="Laporan penjualan" phase="Fase 5" />
+                  <ReportsPage />
                 </ProtectedRoute>
               }
             />

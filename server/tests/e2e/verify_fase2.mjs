@@ -206,7 +206,13 @@ async function run() {
       page.click('.modal-panel:has(#high-cost-title) .btn-primary'),
     ]);
     assert.equal(createConfirmResp.status(), 201);
-    await page.waitForFunction(() => document.body.innerText.includes('Menu Uji Margin'));
+    await page.waitForFunction(
+      () =>
+        !document.querySelector('.modal-backdrop') &&
+        Array.from(document.querySelectorAll('.menu-table tbody tr')).some((r) =>
+          r.innerText.includes('Menu Uji Margin')
+        )
+    );
     process.stdout.write('PASS 4: High-cost confirmation modal in UI verified\n');
 
     // 6. Stock adjustment UI + concurrent API check

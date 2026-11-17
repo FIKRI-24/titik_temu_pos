@@ -228,6 +228,7 @@ export function useCreateOrder() {
       qc.invalidateQueries({ queryKey: ['orders'] });
       qc.invalidateQueries({ queryKey: ['products'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['reports'] });
     },
   });
 }
@@ -240,6 +241,7 @@ export function useUpdateOrderStatus() {
       qc.invalidateQueries({ queryKey: ['orders'] });
       qc.invalidateQueries({ queryKey: ['products'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['reports'] });
     },
   });
 }
@@ -275,17 +277,19 @@ export function useDashboardRecent(limit = 8) {
 // REPORTS
 // ============================================================
 export function useReportOrders(params) {
+  const cleaned = cleanParams(params);
   return useQuery({
-    queryKey: ['reports', 'orders', params],
-    queryFn: () => api.get('/reports/orders', params),
-    enabled: !!params,
+    queryKey: ['reports', 'orders', cleaned],
+    queryFn: () => api.get('/reports/orders', cleaned),
+    enabled: !!cleaned,
   });
 }
 
 export function useReportSummary(params) {
+  const cleaned = cleanParams(params);
   return useQuery({
-    queryKey: ['reports', 'summary', params],
-    queryFn: () => api.get('/reports/summary', params),
-    enabled: !!params,
+    queryKey: ['reports', 'summary', cleaned],
+    queryFn: () => api.get('/reports/summary', cleaned),
+    enabled: !!cleaned,
   });
 }

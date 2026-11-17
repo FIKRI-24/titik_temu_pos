@@ -120,6 +120,9 @@ CREATE TABLE IF NOT EXISTS stock_adjustments (
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_orders_user_created ON orders(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_created_status_method ON orders(created_at DESC, status, metode_bayar);
+CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_order_details_order_id ON order_details(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_details_product_order ON order_details(product_id, order_id);
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_stock_adjustments_product_id ON stock_adjustments(product_id);
